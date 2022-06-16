@@ -6,6 +6,9 @@ name = "pypi"
 [packages]
 tk = "*"
 pyinstaller = "*"
+netmiko = "*"
+rich = "*"
+pyyaml = "*"
 
 [dev-packages]
 
