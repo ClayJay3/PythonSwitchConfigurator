@@ -1,8 +1,9 @@
 # Import required packages.
-from setuptools import setup
 import yaml
 import rich
-import logging
+import logging, logging.config
+
+from interface import main_window
 
 # Define constants.
 LOGGING_LEVEL = "INFO"  # Choices are: "DEBUG", "INFO", "WARN", "CRITICAL", "ERROR"
@@ -20,7 +21,7 @@ def setup_logger(level) -> logging.Logger:
         Logger - The logger object to interface with.
     """
     # Load config file.
-    log_config = yaml.safe_load(open("logging_config.yaml", "r").read())
+    log_config = yaml.safe_load(open("logging_config.yaml", "r", encoding="utf-8").read())
     logging.config.dictConfig(log_config)
 
     # Loop through the configured handlers in the yaml file and set their level.
@@ -31,14 +32,22 @@ def setup_logger(level) -> logging.Logger:
 
     return logging.getLogger()
 
-# Main program loop.
 def main() -> None:
+    """
+    Main program method.
+    """
     # Initialize logger.
     logger = setup_logger(LOGGING_LEVEL)
 
     # Start UI.
-    
+    interface = main_window.UserInterface()
+    interface.initialize_window()
 
-# Call main function.
+    # Main loop that runs as long as the main window is open.
+    while interface.get_is_window_open():
+        # Update window.
+        interface.update_window()
+
 if __name__ == "__main__":
+    # Call main function.
     main()
