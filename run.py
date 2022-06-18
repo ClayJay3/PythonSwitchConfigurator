@@ -1,7 +1,8 @@
 # Import required packages.
+import logging
+import logging.config
 import yaml
 import rich
-import logging, logging.config
 
 from interface import main_window
 

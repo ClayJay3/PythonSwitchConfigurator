@@ -1,0 +1,2 @@
+read config from switch and update display with interfaces and main settings.
+have the ability to push a single config file to a list of switch ips.
