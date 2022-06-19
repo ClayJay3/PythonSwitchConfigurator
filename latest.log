@@ -1,0 +1,15 @@
+interface.main_window, initialize_window, INFO, Initializing window...
+interface.main_window, read_configs_button_callback, INFO, 
+---------------------------------------------------------
+Pulling switch configs now...
+---------------------------------------------------------
+utils.ping, ping, ERROR, Unable to talk to asdfasdf
+interface.main_window, read_configs_button_callback, INFO, 
+---------------------------------------------------------
+Pulling switch configs now...
+---------------------------------------------------------
+utils.ping, ping, INFO, Ping of 127.0.0.1: Host BRKNKRMESPR.bar.nucorsteel.local is up!
+utils.ping, ping, INFO, Ping of 127.0.0.1: Host BRKNKRMESPR.bar.nucorsteel.local is up!
+utils.ping, ping, INFO, Ping of 142.250.191.206: Host ord38s18-in-x0e.1e100.net is up!
+utils.ping, ping, ERROR, Unable to talk to 123.123.123.123
+interface.main_window, close_window, INFO, Main window exit action has been invoked. Performing closing actions.

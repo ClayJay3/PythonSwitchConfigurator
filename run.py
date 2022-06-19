@@ -3,6 +3,7 @@ import logging
 import logging.config
 import yaml
 import rich
+import time
 
 from interface import main_window
 
@@ -48,6 +49,8 @@ def main() -> None:
     while interface.get_is_window_open():
         # Update window.
         interface.update_window()
+        # Sleep
+        time.sleep(1/60)
 
 if __name__ == "__main__":
     # Call main function.

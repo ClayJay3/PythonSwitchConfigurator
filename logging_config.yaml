@@ -11,11 +11,17 @@ handlers:
     level: 0
     formatter: simple
     rich_tracebacks: True
+  fileHandler:
+    class: logging.FileHandler
+    formatter: simple
+    level: DEBUG
+    mode: "w+"
+    filename: 'latest.log'
 loggers:
   Logging_Test:
     level: DEBUG
-    handlers: [console]
+    handlers: [console, fileHandler]
     propagate: False
 root:
   level: DEBUG
-  handlers: [console]
+  handlers: [console, fileHandler]
