@@ -42,7 +42,7 @@ def main() -> None:
     logger = setup_logger(LOGGING_LEVEL)
 
     # Start UI.
-    interface = main_window.UserInterface()
+    interface = main_window.MainUI()
     interface.initialize_window()
 
     # Main loop that runs as long as the main window is open.

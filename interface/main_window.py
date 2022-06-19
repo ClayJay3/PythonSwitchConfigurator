@@ -3,18 +3,19 @@ import sys
 import tkinter as tk
 import logging
 from threading import Thread
+from interface import configure_window
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.ping import ping
 from utils.ping import ping_of_death
 
-# Create UI class.
-class UserInterface():
+# Create MainUI class.
+class MainUI():
     """
     Class that serves as a the frontend for all of the programs user interactable functions.
     """
     def __init__(self) -> None:
         # Create class variables and objects.
         self.logger = logging.getLogger(__name__)
+        self.config_window = configure_window.ConfigureUI()
         self.window_is_open = True
         self.grid_size = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         self.font = "antiqueolive"
@@ -30,7 +31,7 @@ class UserInterface():
 
     def initialize_window(self) -> None:
         """
-        Creates and populates all US windows and components.
+        Creates and populates all MainUI windows and components.
 
         Parameters:
         -----------
@@ -40,7 +41,7 @@ class UserInterface():
         --------
             Nothing
         """
-        self.logger.info("Initializing window...")
+        self.logger.info("Initializing main window...")
 
         # Create new tk window.
         self.window = tk.Tk()
@@ -55,7 +56,7 @@ class UserInterface():
 
         # Setup window grid layout.
         self.window.rowconfigure(self.grid_size, weight=1, minsize=50)
-        self.window.columnconfigure(self.grid_size, weight=1, minsize=50)
+        self.window.columnconfigure(self.grid_size, weight=1, minsize=75)
 
         #######################################################################
         #               Create window components.
@@ -95,7 +96,9 @@ class UserInterface():
         self.text_box = tk.Text(master=load_switch_config_frame, width=10, height=5)
         self.text_box.grid(row=1, rowspan=9, columnspan=9, sticky=tk.NSEW)
         button = tk.Button(master=load_switch_config_frame, text="Pull Configs", foreground="black", background="white", command=self.read_configs_button_callback)
-        button.grid(row=1, rowspan=9, column=9, sticky=tk.NSEW)
+        button.grid(row=1, rowspan=4, column=9, sticky=tk.NSEW)
+        button_ping = tk.Button(master=load_switch_config_frame, text="Ping Check", foreground="black", background="white", command=self.mass_ping_button_callback)
+        button_ping.grid(row=6, rowspan=5, column=9, sticky=tk.NSEW)
 
         # Populate login creds frame.
         creds_title = tk.Label(master=creds_frame, text="Login Credentials", font=(self.font, 18))
@@ -131,10 +134,38 @@ class UserInterface():
 
         # Get text from textbox.
         text = self.text_box.get('1.0', tk.END).splitlines()
+        # Clear existing ips from list.
+        self.ip_list.clear()
         # Ping each switch listed in the textbox to get a list containing their status.
         Thread(target=ping_of_death, args=(text, self.ip_list,)).start()
-        # Open a new ssh session for each one.
-        # Pull config.
+        
+        # Check if a configuration window has already been opened.
+        if self.config_window.get_is_window_open() and self.config_window.get_is_window_initialized():
+            # Close existing window.
+            self.config_window.close_window()
+        # Open configure window and give it the switch ip list.
+        self.config_window.run(self.ip_list)
+
+    def mass_ping_button_callback(self) -> None:
+        """
+        This function is triggered everytime the Mass Ping button is pressed. The process for this button click triggers
+        a ping check to all given devices.
+
+        Parameters:
+        -----------
+            None
+        
+        Returns:
+        --------
+            Nothing
+        """
+        # Print status to console.
+        self.logger.info("\n---------------------------------------------------------\nPinging all devices now...\n---------------------------------------------------------")
+
+        # Get text from textbox.
+        text = self.text_box.get('1.0', tk.END).splitlines()
+        # Ping each switch listed in the textbox to get a list containing their status.
+        Thread(target=ping_of_death, args=(text, self.ip_list,)).start()
 
     def update_window(self) -> None:
         """
@@ -156,8 +187,12 @@ class UserInterface():
         else:
             self.list.insert(0, line)
 
-        # Call window event loop.
+        # Call main window event loop.
         self.window.update()
+        # If config window has been launched, call its update function.
+        if self.config_window.get_is_window_open():
+            # Call config window event loop.
+            self.config_window.update_window()
 
     def close_window(self) -> None:
         """
@@ -168,6 +203,9 @@ class UserInterface():
 
         # Set bool value.
         self.window_is_open = False
+        # Close config window if open.
+        if self.config_window.get_is_window_open():
+            self.config_window.close_window()
         # Close window.
         self.window.destroy()
 

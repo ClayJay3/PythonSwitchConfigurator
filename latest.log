@@ -1,15 +1,36 @@
-interface.main_window, initialize_window, INFO, Initializing window...
+interface.main_window, initialize_window, INFO, Initializing main window...
 interface.main_window, read_configs_button_callback, INFO, 
 ---------------------------------------------------------
 Pulling switch configs now...
 ---------------------------------------------------------
-utils.ping, ping, ERROR, Unable to talk to asdfasdf
+utils.ping, ping, INFO, Ping of 127.0.0.1: Host BRKNKRMESPR.bar.nucorsteel.local is up!
+interface.configure_window, initialize_window, INFO, Initializing configuration window...
+interface.configure_window, close_window, INFO, Configure window exit action has been invoked. Performing closing actions.
 interface.main_window, read_configs_button_callback, INFO, 
 ---------------------------------------------------------
 Pulling switch configs now...
 ---------------------------------------------------------
 utils.ping, ping, INFO, Ping of 127.0.0.1: Host BRKNKRMESPR.bar.nucorsteel.local is up!
 utils.ping, ping, INFO, Ping of 127.0.0.1: Host BRKNKRMESPR.bar.nucorsteel.local is up!
-utils.ping, ping, INFO, Ping of 142.250.191.206: Host ord38s18-in-x0e.1e100.net is up!
-utils.ping, ping, ERROR, Unable to talk to 123.123.123.123
+utils.ping, ping, INFO, Ping of 142.250.191.206: Host ord38s33-in-x0e.1e100.net is up!
+utils.ping, ping, INFO, Ping of 142.250.191.142: Host ord37s18-in-x0e.1e100.net is up!
+utils.ping, ping, INFO, Ping of 74.6.143.25: Host media-router-fp73.prod.media.vip.ne1.yahoo.com is up!
+utils.ping, ping, INFO, Ping of 142.250.190.5: Host ord37s32-in-x05.1e100.net is up!
+interface.configure_window, initialize_window, INFO, Initializing configuration window...
+interface.configure_window, close_window, INFO, Configure window exit action has been invoked. Performing closing actions.
+interface.main_window, read_configs_button_callback, INFO, 
+---------------------------------------------------------
+Pulling switch configs now...
+---------------------------------------------------------
+utils.ping, ping, INFO, Ping of 127.0.0.1: Host BRKNKRMESPR.bar.nucorsteel.local is up!
+utils.ping, ping, INFO, Ping of 127.0.0.1: Host BRKNKRMESPR.bar.nucorsteel.local is up!
+utils.ping, ping, INFO, Ping of 142.250.191.142: Host ord37s18-in-x0e.1e100.net is up!
+utils.ping, ping, INFO, Ping of 142.250.191.206: Host ord38s33-in-x0e.1e100.net is up!
+utils.ping, ping, INFO, Ping of 74.6.143.25: Host media-router-fp73.prod.media.vip.ne1.yahoo.com is up!
+utils.ping, ping, INFO, Ping of 142.250.190.5: Host ord37s32-in-x05.1e100.net is up!
+utils.ping, ping, ERROR, Unable to talk to asdf
+utils.ping, ping, ERROR, Unable to talk to asdf
+interface.configure_window, update_window, INFO, Throwing out 2 of 8 IPs because they are unreachable.
+interface.configure_window, initialize_window, INFO, Initializing configuration window...
 interface.main_window, close_window, INFO, Main window exit action has been invoked. Performing closing actions.
+interface.configure_window, close_window, INFO, Configure window exit action has been invoked. Performing closing actions.
