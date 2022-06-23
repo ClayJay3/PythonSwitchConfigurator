@@ -1,8 +1,12 @@
-from asyncore import write
 import logging
+import time
 import tkinter as tk
-from turtle import window_height
-import netmiko
+from threading import Thread
+from typing import Tuple
+
+from utils.open_connection import (ssh_autodetect_info,
+                                   ssh_autodetect_switchlist_info)
+
 
 # Create Configure UI window class.
 class ConfigureUI:
@@ -15,18 +19,26 @@ class ConfigureUI:
         self.window = None
         self.window_is_open = False
         self.window_is_initialized = False
+        self.retrieving_devices = False
         self.grid_size = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         self.font = "antiqueolive"
-        self.ip_list = None
+        self.username = None
+        self.password = None
+        self.ip_list = []
+        self.ssh_connections = []
+        self.devices = []
         self.switch_selection = None
         self.drop_down = None
 
-    def run(self, ips):
+    def run(self, ips, username, password):
         """
         Call this function to start UI window in a new thread.
         """
         # Set ip list var.
         self.ip_list = ips
+        # Set username and password var.
+        self.username = username
+        self.password = password
         # Set window is open.
         self.window_is_open = True
 
@@ -102,14 +114,19 @@ class ConfigureUI:
         # Populate quick command frame.
         int_stat_button = tk.Button(master=command_button_frame,  text="Interface Status", foreground="black", background="white", command=self.write_switch_config)
         int_stat_button.grid(row=0, column=0, sticky=tk.NSEW)
+        run_config_button = tk.Button(master=command_button_frame,  text="Show Run", foreground="black", background="white", command=self.write_switch_config)
+        run_config_button.grid(row=0, column=1, sticky=tk.NSEW)
+        log_button = tk.Button(master=command_button_frame,  text="Show Log", foreground="black", background="white", command=self.write_switch_config)
+        log_button.grid(row=0, column=2, sticky=tk.NSEW)
         test_link_button = tk.Button(master=command_button_frame,  text="Test Port Link Quality", foreground="black", background="white", command=self.write_switch_config)
-        test_link_button.grid(row=0, column=2, sticky=tk.NSEW)
+        test_link_button.grid(row=0, column=3, sticky=tk.NSEW)
         show_int_err_button = tk.Button(master=command_button_frame,  text="Show Interface Errors", foreground="black", background="white", command=self.write_switch_config)
         show_int_err_button.grid(row=0, column=4, sticky=tk.NSEW)
         clr_int_err_button = tk.Button(master=command_button_frame,  text="Clear Interface Errors", foreground="black", background="white", command=self.write_switch_config)
-        clr_int_err_button.grid(row=0, column=6, sticky=tk.NSEW)
+        clr_int_err_button.grid(row=0, column=5, sticky=tk.NSEW)
         port_channel_button = tk.Button(master=command_button_frame,  text="Create Port Channel", foreground="black", background="white", command=self.write_switch_config)
-        port_channel_button.grid(row=0, column=8, sticky=tk.NSEW)
+        port_channel_button.grid(row=0, column=6, sticky=tk.NSEW)
+
 
         # Populate upload config frame.
         text_box = tk.Text(master=upload_frame, width=10, height=5)
@@ -132,9 +149,17 @@ class ConfigureUI:
         --------
             Nothing
         """
+        # Create instance variables.
+        current_selected_model = None
+
         # Store choice.
         choice = self.switch_selection.get()
-        # 
+        # Split choice ip and hostname string up.
+        choices = choice.split()
+        selected_ip_addr = choices[0]
+        selected_hostname = choices[1]
+
+        # Open ssh connection with switch.
 
     def write_switch_config(self):
         """
@@ -149,6 +174,7 @@ class ConfigureUI:
             Nothing
         """
         # Write the switch config.
+        pass
         
     def update_window(self) -> None:
         """
@@ -164,17 +190,19 @@ class ConfigureUI:
         """
         # Wait until we get ip info, then initialize window.
         if not self.window_is_initialized and len(self.ip_list) > 0:# and not all(ip is None for ip in self.ip_list) and not all(ip[0] is False for ip in self.ip_list):
-            # Remove all ips that are unreachable.
-            ips = []
-            for addr in self.ip_list:
-                if addr is not None and addr[0] is True:
-                    ips.append(f"{addr[1]} {addr[2]}")
+            # If the list does not contain tuples that store if the ping was successful then move on.
+            if isinstance(self.ip_list[0], Tuple):
+                # Remove all ips that are unreachable.
+                ips = []
+                for addr in self.ip_list:
+                    if addr is not None and addr[0] is True:
+                        ips.append(f"{addr[1]} {addr[2]}")
 
-            # Print log info.
-            if len(self.ip_list) - len(ips) > 0:
-                self.logger.info(f"Throwing out {len(self.ip_list) - len(ips)} of {len(self.ip_list)} IPs because they are unreachable.")
-            # Assign new ip list withing None and False ips.
-            self.ip_list = ips
+                # Print log info.
+                if len(self.ip_list) - len(ips) > 0:
+                    self.logger.info(f"Throwing out {len(self.ip_list) - len(ips)} of {len(self.ip_list)} IPs because they are unreachable.")
+                # Assign new ip list withing None and False ips.
+                self.ip_list = ips
 
             if len(self.ip_list) <= 0:
                 # Print a log warning since we don't have any good ips.
@@ -182,8 +210,36 @@ class ConfigureUI:
                 # Close window.
                 self.close_window()
             else:
-                # Initialize window components.
-                self.initialize_window()
+                if not self.retrieving_devices:
+                    # Loop through and grab just the IPs of the devices.
+                    addresses = []
+                    for addr in self.ip_list:
+                        # Split the string containing ip and hostname.
+                        temp = addr.split(" ")[0]
+                        # Add only ip to the list.
+                        addresses.append(temp)
+                    
+                    # Now that we have a good list of IPs, get device info about each one.
+                    Thread(target=ssh_autodetect_switchlist_info, args=(self.username, self.password, addresses, self.devices)).start()
+
+                    # Set toggle.
+                    self.retrieving_devices = True
+
+                # Wait until devices list has been updated.
+                if (len(self.devices) > 0):
+                    # Update hostnames.
+                    for i, addr in enumerate(self.ip_list):
+                        # Split ip string.
+                        addr = addr.split(" ")
+                        # Copy devices hostname to ip list.
+                        device = self.devices[i]
+                        if device is not None and len(device) > 0:
+                            hostname = device["hostname"]
+                            device = f"{addr[0]} {hostname}"
+                            self.ip_list[i] = device
+
+                    # Initialize window components.
+                    self.initialize_window()
 
         # Only update window components if window is initialized.
         if self.window_is_initialized:
@@ -196,6 +252,10 @@ class ConfigureUI:
         """
         # Set bool value.
         self.window_is_open = False
+        self.retrieving_devices = False
+        # Clear arrays.
+        self.ip_list.clear()
+        self.devices.clear()
         # Close window.
         if self.window_is_initialized:
             # Print info.

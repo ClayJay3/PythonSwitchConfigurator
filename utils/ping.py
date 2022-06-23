@@ -6,6 +6,9 @@ import socket
 from multiprocessing.pool import ThreadPool
 from typing import Tuple
 
+# Create constants.
+PING_THREADS = 100
+
 def ping(ip_or_hostname) -> Tuple[bool, str, str]:
     """
     This function takes in a machines ip or hostname and returns if it is reachable
@@ -57,7 +60,12 @@ def ping(ip_or_hostname) -> Tuple[bool, str, str]:
                 reachable = True
                 # Try to resolve both the IP and hostname.
                 ip_addr = socket.gethostbyname(ip_or_hostname)
-                hostname, _, _ = socket.gethostbyaddr(ip_or_hostname)
+                # Try to resolve hostname, must catch this because it throws errors if it fails.
+                try:
+                    hostname, _, _ = socket.gethostbyaddr(ip_or_hostname)
+                except socket.herror:
+                    # Set hostname equal to ip address.
+                    hostname = ip_addr
                 # Print host is up.
                 logger.info(f"Ping of {ip_addr}: Host {hostname} is up!")
             else:
@@ -67,12 +75,12 @@ def ping(ip_or_hostname) -> Tuple[bool, str, str]:
                 logger.error(f"Unable to talk to {ip_or_hostname}")
 
         return reachable, ip_addr, hostname
-    except Exception as e:
+    except Exception as exception:
         # Print debug.
-        logger.critical(f"Something weird happened while pinging {ip_or_hostname}.", exc_info=e, stack_info=True)
+        logger.critical(f"Something weird happened while pinging {ip_or_hostname}.", exc_info=exception, stack_info=True)
 
 
-def ping_of_death(text, ip_list):
+def ping_of_death(text, ip_list) -> None:
     """
     This function looks at the given list of strings containing ips and pings each one to see which ones are reachable.
 
@@ -86,7 +94,7 @@ def ping_of_death(text, ip_list):
         Nothing
     """
     # Create method instance variables.
-    thread_pool = ThreadPool(5)
+    thread_pool = ThreadPool(PING_THREADS)
     logger = logging.getLogger(__name__)
 
     # Check if the textbox actually contains something.

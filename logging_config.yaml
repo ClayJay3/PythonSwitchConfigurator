@@ -14,7 +14,7 @@ handlers:
   fileHandler:
     class: logging.FileHandler
     formatter: simple
-    level: DEBUG
+    level: INFO
     mode: "w+"
     filename: 'latest.log'
 loggers:

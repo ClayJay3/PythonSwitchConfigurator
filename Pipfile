@@ -9,6 +9,7 @@ pyinstaller = "*"
 netmiko = "*"
 rich = "*"
 pyyaml = "*"
+pysnmp = "*"
 
 [dev-packages]
 

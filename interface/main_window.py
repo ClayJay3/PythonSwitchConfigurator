@@ -1,11 +1,16 @@
+import logging
 import os
 import sys
 import tkinter as tk
-import logging
 from threading import Thread
+
 from interface import configure_window
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.open_connection import (ssh_autodetect_info,
+                                   ssh_autodetect_switchlist_info)
 from utils.ping import ping_of_death
+
 
 # Create MainUI class.
 class MainUI():
@@ -132,19 +137,25 @@ class MainUI():
         # Print status to console.
         self.logger.info("\n---------------------------------------------------------\nPulling switch configs now...\n---------------------------------------------------------")
 
-        # Get text from textbox.
-        text = self.text_box.get('1.0', tk.END).splitlines()
-        # Clear existing ips from list.
-        self.ip_list.clear()
-        # Ping each switch listed in the textbox to get a list containing their status.
-        Thread(target=ping_of_death, args=(text, self.ip_list,)).start()
+        # Check to see if username and password creds have been given. Don't open config window unless they are present.
+        if (self.username_entry.get() != "" and self.password_entry.get() != ""):
+            # Get text from textbox.
+            text = self.text_box.get('1.0', tk.END).splitlines()
+            # Clear existing ips from list.
+            self.ip_list.clear()
+            # Ping each switch listed in the textbox to get a list containing their status.
+            Thread(target=ping_of_death, args=(text, self.ip_list,)).start()
+            
+            # Check if a configuration window has already been opened.
+            if self.config_window.get_is_window_open() and self.config_window.get_is_window_initialized():
+                # Close existing window.
+                self.config_window.close_window()
         
-        # Check if a configuration window has already been opened.
-        if self.config_window.get_is_window_open() and self.config_window.get_is_window_initialized():
-            # Close existing window.
-            self.config_window.close_window()
-        # Open configure window and give it the switch ip list.
-        self.config_window.run(self.ip_list)
+            # Open configure window and give it the switch ip list, username, and password.
+            self.config_window.run(self.ip_list, self.username_entry.get(), self.password_entry.get())
+        else:
+            # Print log info.
+            self.logger.warning("You must enter username and password credentials. Otherwise, I can't log into the switch!")
 
     def mass_ping_button_callback(self) -> None:
         """
