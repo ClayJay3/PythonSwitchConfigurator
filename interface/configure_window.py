@@ -88,7 +88,7 @@ class ConfigureUI:
         command_button_frame = tk.LabelFrame(master=self.window, text="Quick Commands", relief=tk.GROOVE, borderwidth=3)
         command_button_frame.grid(row=0, column=5, columnspan=5, sticky=tk.NSEW)
         command_button_frame.rowconfigure(0, weight=1)
-        command_button_frame.columnconfigure(0, weight=1)
+        command_button_frame.columnconfigure(self.grid_size, weight=1)
         # Create frame for interface configuration.
         interface_frame = tk.LabelFrame(master=self.window, text="Interface Config", relief=tk.GROOVE, borderwidth=3)
         interface_frame.grid(row=1, rowspan=9, column=0, columnspan=4, sticky=tk.NSEW)
@@ -113,19 +113,19 @@ class ConfigureUI:
 
         # Populate quick command frame.
         int_stat_button = tk.Button(master=command_button_frame,  text="Interface Status", foreground="black", background="white", command=self.write_switch_config)
-        int_stat_button.grid(row=0, column=0, sticky=tk.NSEW)
+        int_stat_button.grid(row=0, column=0, columnspan=1, sticky=tk.NSEW)
         run_config_button = tk.Button(master=command_button_frame,  text="Show Run", foreground="black", background="white", command=self.write_switch_config)
-        run_config_button.grid(row=0, column=1, sticky=tk.NSEW)
+        run_config_button.grid(row=0, column=1, columnspan=1, sticky=tk.NSEW)
         log_button = tk.Button(master=command_button_frame,  text="Show Log", foreground="black", background="white", command=self.write_switch_config)
         log_button.grid(row=0, column=2, sticky=tk.NSEW)
         test_link_button = tk.Button(master=command_button_frame,  text="Test Port Link Quality", foreground="black", background="white", command=self.write_switch_config)
-        test_link_button.grid(row=0, column=3, sticky=tk.NSEW)
+        test_link_button.grid(row=0, column=3, columnspan=1, sticky=tk.NSEW)
         show_int_err_button = tk.Button(master=command_button_frame,  text="Show Interface Errors", foreground="black", background="white", command=self.write_switch_config)
-        show_int_err_button.grid(row=0, column=4, sticky=tk.NSEW)
+        show_int_err_button.grid(row=0, column=4, columnspan=1, sticky=tk.NSEW)
         clr_int_err_button = tk.Button(master=command_button_frame,  text="Clear Interface Errors", foreground="black", background="white", command=self.write_switch_config)
-        clr_int_err_button.grid(row=0, column=5, sticky=tk.NSEW)
+        clr_int_err_button.grid(row=0, column=5, columnspan=1, sticky=tk.NSEW)
         port_channel_button = tk.Button(master=command_button_frame,  text="Create Port Channel", foreground="black", background="white", command=self.write_switch_config)
-        port_channel_button.grid(row=0, column=6, sticky=tk.NSEW)
+        port_channel_button.grid(row=0, column=6, columnspan=1, sticky=tk.NSEW)
 
 
         # Populate upload config frame.

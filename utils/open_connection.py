@@ -41,9 +41,12 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=[]) -> str:
         logger.info(f"Autodetecting model and opening connection for {ip_addr}")
         # Open new ssh connection with switch.
         ssh_connection = ConnectHandler(**remote_device)
-
-        # Wait until we have found the switch prompt.
+        # Print logging info.
         logger.info("Waiting for command prompt...")
+
+        #######################################################################
+        # Get the IP and hostname info.
+        #######################################################################
         try:
             # Look for switch prompt.
             prompt = ssh_connection.find_prompt()
@@ -56,7 +59,10 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=[]) -> str:
         except ValueError:
             logger.error(f"Unable to find switch prompt for {ip_addr}")
 
-        # Run commands to get the neighboring connected switches.
+        #######################################################################
+        # Get the neighboring connected switches.
+        #######################################################################
+        # Run command.
         output = ssh_connection.send_command("show cdp neighbors detail")
         # Parse cdp neighbors output
         neighbor_ips = []
@@ -87,6 +93,10 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=[]) -> str:
         # Remove duplicates from neighbor list and add to dictionary.
         neighbor_ips = [addr for addr in neighbor_ips if len(addr) >= 8]
         devices_info["neighbors"] = list(set(neighbor_ips))
+
+        #######################################################################
+        # Get the model and firmware version info.
+        #######################################################################
     except Exception:
         # Print log info.
         logger.error(f"Something happened while trying to communicate with device {ip_addr}")
