@@ -1,11 +1,9 @@
 import logging
-import time
 import tkinter as tk
 from threading import Thread
 from typing import Tuple
 
-from utils.open_connection import (ssh_autodetect_info,
-                                   ssh_autodetect_switchlist_info)
+from utils.open_connection import ssh_autodetect_switchlist_info
 
 
 # Create Configure UI window class.

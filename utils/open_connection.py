@@ -1,18 +1,14 @@
 # Import required packages and modules.
 import logging
-import time
 from functools import partial
 from multiprocessing.pool import ThreadPool
-from unittest import result
-
-from netmiko.exceptions import NetmikoTimeoutException
-from netmiko.ssh_autodetect import SSHDetect
+from netmiko.exceptions import NetmikoAuthenticationException, NetmikoTimeoutException
 from netmiko.ssh_dispatcher import ConnectHandler
 
 # Create constants.
 SSH_THREADS = 100
 
-def ssh_autodetect_info(username, password, ip_addr, result_info=[]) -> str:
+def ssh_autodetect_info(username, password, ip_addr, result_info=None) -> str:
     """
     This method will attempt to autodetect the switch device info using netmiko's
     ssh_autodetect
@@ -97,11 +93,16 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=[]) -> str:
         #######################################################################
         # Get the model and firmware version info.
         #######################################################################
-    except Exception:
+    except NetmikoAuthenticationException:
+        # Print log info.
+        logger.error(f"Unable to authenticate with device {ip_addr}")
+        # Set default value.
+        devices_info = {"ip_address": ip_addr, "hostname": "Unable to Authenticate"}
+    except NetmikoTimeoutException:
         # Print log info.
         logger.error(f"Something happened while trying to communicate with device {ip_addr}")
         # Set default value.
-        devices_info = []
+        devices_info = {"ip_address": ip_addr, "hostname": "Unable to Authenticate"}
 
     # Copy devices info to result param.
     result_info = devices_info

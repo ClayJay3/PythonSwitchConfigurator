@@ -3,57 +3,11 @@ interface.main_window, read_configs_button_callback, INFO,
 ---------------------------------------------------------
 Pulling switch configs now...
 ---------------------------------------------------------
-utils.ping, ping, ERROR, Unable to talk to 10.20.126.24
-utils.ping, ping, INFO, Ping of 10.20.126.254: Host 10.20.126.254 is up!
-utils.ping, ping, INFO, Ping of 10.20.126.197: Host 10.20.126.197 is up!
-utils.ping, ping, INFO, Ping of 10.20.126.181: Host 10.20.126.181 is up!
-utils.ping, ping, INFO, Ping of 10.20.126.204: Host 10.20.126.204 is up!
-utils.ping, ping, INFO, Ping of 10.20.126.211: Host 10.20.126.211 is up!
-utils.ping, ping, INFO, Ping of 10.20.126.183: Host 10.20.126.183 is up!
-utils.ping, ping, INFO, Ping of 10.20.60.252: Host 10.20.60.252 is up!
-interface.configure_window, update_window, INFO, Throwing out 1 of 8 IPs because they are unreachable.
-utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.254
-utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.183
-utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.211
-utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.181
-utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.204
-utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.60.252
-utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.197
-paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
-paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
-paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
-paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
-paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
-paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
-paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
-paramiko.transport, _log, INFO, Auth banner: b'Cc********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************c'
-paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
-paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
-paramiko.transport, _log, INFO, Authentication (password) successful!
-paramiko.transport, _log, INFO, Authentication (password) successful!
-paramiko.transport, _log, INFO, Authentication (password) successful!
-utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
-utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
-utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
-paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
-paramiko.transport, _log, INFO, Authentication (password) successful!
-utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-M2-SHEAR-ACCESS#
-utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-RM2-PULPIT#
-utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-TOR-ACCESS#
-utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
-paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************This device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.*********************************C'
-paramiko.transport, _log, INFO, Authentication (password) successful!
-utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
-paramiko.transport, _log, INFO, Auth banner: b'c********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************c'
-utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ROLLERS-OFFICE-2>
-paramiko.transport, _log, INFO, Authentication (password) successful!
-utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
-utils.open_connection, ssh_autodetect_info, INFO, Found prompt: NSKNK-NEW-CORE-B#
-paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
-paramiko.transport, _log, INFO, Authentication (password) successful!
-utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
-utils.open_connection, ssh_autodetect_info, INFO, Found prompt: NSKNK-NEW-CORE-A#
-utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-TAGGER-ACCESS#
-interface.configure_window, initialize_window, INFO, Initializing configuration window...
-interface.configure_window, close_window, INFO, Configure window exit action has been invoked. Performing closing actions.
-interface.main_window, close_window, INFO, Main window exit action has been invoked. Performing closing actions.
+utils.ping, ping, INFO, Ping of 127.0.0.1: Host BRKNKRMESPR.bar.nucorsteel.local is up!
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 127.0.0.1
+interface.main_window, read_configs_button_callback, INFO, 
+---------------------------------------------------------
+Pulling switch configs now...
+---------------------------------------------------------
+utils.ping, ping, INFO, Ping of 127.0.0.1: Host BRKNKRMESPR.bar.nucorsteel.local is up!
+utils.ping, ping, INFO, Ping of 10.20.126.113: Host 10.20.126.113 is up!
