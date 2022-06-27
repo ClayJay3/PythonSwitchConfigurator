@@ -1,7 +1,11 @@
 # Import required packages and modules.
+from concurrent.futures.process import _RemoteTraceback
 import logging
 from functools import partial
+from multiprocessing import connection
 from multiprocessing.pool import ThreadPool
+from sqlite3 import connect
+import netmiko
 from netmiko.exceptions import NetmikoAuthenticationException, NetmikoTimeoutException
 from netmiko.ssh_dispatcher import ConnectHandler
 
@@ -27,7 +31,6 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=None) -> str:
     """
     # Create instance variables and objects.
     logger = logging.getLogger(__name__)
-    devices_info = {}
 
     # Create device dictionary.
     remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password}
@@ -49,9 +52,9 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=None) -> str:
             # Print prompt.
             logger.info(f"Found prompt: {prompt}")
             # Take off # from prompt to get hostname.
-            devices_info["hostname"] = prompt[:-1]
+            remote_device["host"] = prompt[:-1]
             # Store known ip address.
-            devices_info["ip_address"] = ip_addr
+            remote_device["ip_address"] = ip_addr
         except ValueError:
             logger.error(f"Unable to find switch prompt for {ip_addr}")
 
@@ -88,7 +91,7 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=None) -> str:
         
         # Remove duplicates from neighbor list and add to dictionary.
         neighbor_ips = [addr for addr in neighbor_ips if len(addr) >= 8]
-        devices_info["neighbors"] = list(set(neighbor_ips))
+        remote_device["neighbors"] = list(set(neighbor_ips))
 
         #######################################################################
         # Get the model and firmware version info.
@@ -97,15 +100,17 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=None) -> str:
         # Print log info.
         logger.error(f"Unable to authenticate with device {ip_addr}")
         # Set default value.
-        devices_info = {"ip_address": ip_addr, "hostname": "Unable to Authenticate"}
+        remote_device["ip_address"] = ip_addr
+        remote_device["host"] = "Unable_to_Authenticate"
     except NetmikoTimeoutException:
         # Print log info.
         logger.error(f"Something happened while trying to communicate with device {ip_addr}")
         # Set default value.
-        devices_info = {"ip_address": ip_addr, "hostname": "Unable to Authenticate"}
+        remote_device["ip_address"] = ip_addr
+        remote_device["host"] = "Unable_to_Authenticate"
 
     # Copy devices info to result param.
-    result_info = devices_info
+    result_info = remote_device
 
     return result_info
 
@@ -143,4 +148,36 @@ def ssh_autodetect_switchlist_info(username, password, ip_list, device_list) -> 
             device_list.append(switch)
     else:
         logger.warning("No IPs were givin. Can't open any SSH sessions to autodetect.")
-    
+
+def ssh(device) -> netmiko.ssh_dispatcher:
+    """
+    This method uses the given ip to open a new ssh connetion.
+
+    Parameters:
+    -----------
+        device - A dictionary object containing the required keys and values to connect to the device.
+
+    Returns:
+    --------
+        ssh_connection - The live connection object to the device.
+    """
+    # Create instance variables and objects.
+    logger = logging.getLogger(__name__)
+    connection = None
+
+    # Only give connect handler what it needs. 
+    remote_device = {"device_type": device["device_type"], "host": device["ip_address"], "username": device["username"], "password": device["password"]}
+
+    # If the device is not a switch codemiko will crash.
+    try:
+        # Try to open a connection with the device.
+        connection = ConnectHandler(**remote_device)
+    except NetmikoAuthenticationException:
+        # Print log info.
+        logger.error(f"Unable to authenticate with device {device['host']}")
+    except NetmikoTimeoutException:
+        # Print log info.
+        logger.error(f"Something happened while trying to communicate with device {device['host']}")
+
+    # Connect and return
+    return connection

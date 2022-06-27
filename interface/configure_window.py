@@ -1,9 +1,12 @@
 import logging
 import tkinter as tk
+import netmiko
+from tkinter import ttk
+from tkinter import messagebox
 from threading import Thread
 from typing import Tuple
 
-from utils.open_connection import ssh_autodetect_switchlist_info
+from utils.open_connection import ssh_autodetect_switchlist_info, ssh
 
 
 # Create Configure UI window class.
@@ -12,7 +15,7 @@ class ConfigureUI:
     Class that serves as frontend for all of the individual switch configure.
     """
     def __init__(self) -> None:
-        # Create class variables and objects.
+        # Create class variables, objects, and constants.
         self.logger = logging.getLogger(__name__)
         self.window = None
         self.window_is_open = False
@@ -20,6 +23,15 @@ class ConfigureUI:
         self.retrieving_devices = False
         self.grid_size = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         self.font = "antiqueolive"
+
+        # Window Frames.
+        self.selector_frame = None
+        self.command_button_frame = None
+        self.interface_frame = None
+        self.vlan_frame = None
+        self.upload_frame = None
+
+        # Window 
         self.username = None
         self.password = None
         self.ip_list = []
@@ -28,7 +40,7 @@ class ConfigureUI:
         self.switch_selection = None
         self.drop_down = None
 
-    def run(self, ips, username, password):
+    def run(self, ips, username, password) -> None:
         """
         Call this function to start UI window in a new thread.
         """
@@ -78,88 +90,86 @@ class ConfigureUI:
         #               Create window components.
         #######################################################################
         # Create frame for selecting which switch to connect to.
-        selector_frame = tk.Frame(master=self.window, relief=tk.GROOVE, borderwidth=3)
-        selector_frame.grid(row=0, column=0, columnspan=5, sticky=tk.NSEW)
-        selector_frame.rowconfigure(0, weight=1)
-        selector_frame.columnconfigure(0, weight=1)
+        self.selector_frame = tk.Frame(master=self.window, relief=tk.GROOVE, borderwidth=3)
+        self.selector_frame.grid(row=0, column=0, columnspan=5, sticky=tk.NSEW)
+        self.selector_frame.rowconfigure(0, weight=1)
+        self.selector_frame.columnconfigure(0, weight=1)
         # Create frame for the quick command buttons.
-        command_button_frame = tk.LabelFrame(master=self.window, text="Quick Commands", relief=tk.GROOVE, borderwidth=3)
-        command_button_frame.grid(row=0, column=5, columnspan=5, sticky=tk.NSEW)
-        command_button_frame.rowconfigure(0, weight=1)
-        command_button_frame.columnconfigure(self.grid_size, weight=1)
+        self.command_button_frame = tk.LabelFrame(master=self.window, text="Quick Commands", relief=tk.GROOVE, borderwidth=3)
+        self.command_button_frame.grid(row=0, column=5, columnspan=5, sticky=tk.NSEW)
+        self.command_button_frame.rowconfigure(0, weight=1)
+        self.command_button_frame.columnconfigure(self.grid_size, weight=1)
         # Create frame for interface configuration.
-        interface_frame = tk.LabelFrame(master=self.window, text="Interface Config", relief=tk.GROOVE, borderwidth=3)
-        interface_frame.grid(row=1, rowspan=9, column=0, columnspan=4, sticky=tk.NSEW)
-        interface_frame.rowconfigure(0, weight=1)
-        interface_frame.columnconfigure(0, weight=1)
+        self.interface_frame = tk.LabelFrame(master=self.window, text="Interface Config", relief=tk.GROOVE, borderwidth=3)
+        self.interface_frame.grid(row=1, rowspan=9, column=0, columnspan=4, sticky=tk.NSEW)
+        self.interface_frame.rowconfigure(0, weight=1)
+        self.interface_frame.columnconfigure(0, weight=1)
         # Create frame for vlan configuration.
-        vlan_frame = tk.LabelFrame(master=self.window, text="VLAN Config", relief=tk.GROOVE, borderwidth=3)
-        vlan_frame.grid(row=1, rowspan=9, column=4, columnspan=3, sticky=tk.NSEW)
-        vlan_frame.rowconfigure(0, weight=1)
-        vlan_frame.columnconfigure(0, weight=1)
+        self.vlan_frame = tk.LabelFrame(master=self.window, text="VLAN Config", relief=tk.GROOVE, borderwidth=3)
+        self.vlan_frame.grid(row=1, rowspan=9, column=4, columnspan=3, sticky=tk.NSEW)
+        self.vlan_frame.rowconfigure(0, weight=1)
+        self.vlan_frame.columnconfigure(0, weight=1)
         # Create frame for uploading configuration.
-        upload_frame = tk.LabelFrame(master=self.window, text="Upload Config", relief=tk.GROOVE, borderwidth=3)
-        upload_frame.grid(row=1, rowspan=9, column=7, columnspan=3, sticky=tk.NSEW)
-        upload_frame.rowconfigure(0, weight=1)
-        upload_frame.columnconfigure(0, weight=1)
+        self.upload_frame = tk.LabelFrame(master=self.window, text="Upload Config", relief=tk.GROOVE, borderwidth=3)
+        self.upload_frame.grid(row=1, rowspan=9, column=7, columnspan=3, sticky=tk.NSEW)
+        self.upload_frame.rowconfigure(0, weight=1)
+        self.upload_frame.columnconfigure(0, weight=1)
 
         # Populate selector frame.
-        self.drop_down = tk.OptionMenu(selector_frame, self.switch_selection, *self.ip_list, command=self.drop_down_callback)
+        self.drop_down = ttk.Combobox(master=self.selector_frame, textvariable=self.switch_selection, values=self.ip_list)
+        self.drop_down.bind('<<ComboboxSelected>>', self.drop_down_callback)        # Set callback binding for combobox cause it's odd.
         self.drop_down.grid(row=0, column=0, columnspan=7, sticky=tk.NSEW)
-        write_button = tk.Button(master=selector_frame,  text="WRITE", foreground="black", background="white", command=self.write_switch_config)
+        write_button = tk.Button(master=self.selector_frame,  text="WRITE", foreground="black", background="white", command=self.write_switch_config)
         write_button.grid(row=0, column=7, columnspan=3, sticky=tk.NSEW)
 
         # Populate quick command frame.
-        int_stat_button = tk.Button(master=command_button_frame,  text="Interface Status", foreground="black", background="white", command=self.write_switch_config)
+        int_stat_button = tk.Button(master=self.command_button_frame,  text="Interface Status", foreground="black", background="white", command=self.interface_status_callback)
         int_stat_button.grid(row=0, column=0, columnspan=1, sticky=tk.NSEW)
-        run_config_button = tk.Button(master=command_button_frame,  text="Show Run", foreground="black", background="white", command=self.write_switch_config)
-        run_config_button.grid(row=0, column=1, columnspan=1, sticky=tk.NSEW)
-        log_button = tk.Button(master=command_button_frame,  text="Show Log", foreground="black", background="white", command=self.write_switch_config)
-        log_button.grid(row=0, column=2, sticky=tk.NSEW)
-        test_link_button = tk.Button(master=command_button_frame,  text="Test Port Link Quality", foreground="black", background="white", command=self.write_switch_config)
-        test_link_button.grid(row=0, column=3, columnspan=1, sticky=tk.NSEW)
-        show_int_err_button = tk.Button(master=command_button_frame,  text="Show Interface Errors", foreground="black", background="white", command=self.write_switch_config)
-        show_int_err_button.grid(row=0, column=4, columnspan=1, sticky=tk.NSEW)
-        clr_int_err_button = tk.Button(master=command_button_frame,  text="Clear Interface Errors", foreground="black", background="white", command=self.write_switch_config)
-        clr_int_err_button.grid(row=0, column=5, columnspan=1, sticky=tk.NSEW)
-        port_channel_button = tk.Button(master=command_button_frame,  text="Create Port Channel", foreground="black", background="white", command=self.write_switch_config)
-        port_channel_button.grid(row=0, column=6, columnspan=1, sticky=tk.NSEW)
+        log_button = tk.Button(master=self.command_button_frame,  text="Show Log", foreground="black", background="white", command=self.show_log_callback)
+        log_button.grid(row=0, column=1, sticky=tk.NSEW)
+        test_link_button = tk.Button(master=self.command_button_frame,  text="Test Port Link Quality", foreground="black", background="white", command=self.test_port_link_callback)
+        test_link_button.grid(row=0, column=2, columnspan=1, sticky=tk.NSEW)
+        show_int_err_button = tk.Button(master=self.command_button_frame,  text="Show Interface Errors", foreground="black", background="white", command=self.show_interface_errors_callback)
+        show_int_err_button.grid(row=0, column=3, columnspan=1, sticky=tk.NSEW)
+        clr_int_err_button = tk.Button(master=self.command_button_frame,  text="Clear Interface Errors", foreground="black", background="white", command=self.clear_interface_errors_callback)
+        clr_int_err_button.grid(row=0, column=4, columnspan=1, sticky=tk.NSEW)
+        port_channel_button = tk.Button(master=self.command_button_frame,  text="Create Port Channel", foreground="black", background="white", command=self.port_channel_callback)
+        port_channel_button.grid(row=0, column=5, columnspan=1, sticky=tk.NSEW)
 
 
         # Populate upload config frame.
-        text_box = tk.Text(master=upload_frame, width=10, height=5)
+        text_box = tk.Text(master=self.upload_frame, width=10, height=5)
         text_box.grid(row=0, rowspan=9, column=0, columnspan=10, sticky=tk.NSEW)
-        write_button = tk.Button(master=upload_frame,  text="Upload Config", foreground="black", background="white", command=self.write_switch_config)
+        write_button = tk.Button(master=self.upload_frame,  text="Upload Config", foreground="black", background="white", command=self.write_switch_config)
         write_button.grid(row=9, column=0, columnspan=10, sticky=tk.NSEW)
 
         # Set window initialized flag.
         self.window_is_initialized = True
 
-    def drop_down_callback(self, choice):
+    def drop_down_callback(self, event) -> None:
         """
         This method is called everytime a new item is selected in the dropdown menu.
 
         Parameters:
         -----------
-            choice - This is given to us by the OptionMenu class. Not very usefull.
+            event - The virtual event given to us by the binding of this method to the drop_down object.
 
         Returns:
         --------
             Nothing
         """
-        # Create instance variables.
-        current_selected_model = None
+        # Check if a valid choice has been made.
+        if self.drop_down.current() != -1:
+            # Get the current selected device.
+            device = self.devices[self.drop_down.current()]
+            # Print log.
+            self.logger.info(f"Selected device: {self.ip_list[self.drop_down.current()]}. Opening connection...")
+            # Open ssh connection with switch.
+            connection = ssh(device)
+            # Store the new connection in the ssh connections list.
+            self.ssh_connections[self.drop_down.current()] = connection
 
-        # Store choice.
-        choice = self.switch_selection.get()
-        # Split choice ip and hostname string up.
-        choices = choice.split()
-        selected_ip_addr = choices[0]
-        selected_hostname = choices[1]
-
-        # Open ssh connection with switch.
-
-    def write_switch_config(self):
+    def write_switch_config(self) -> None:
         """
         This method is called everytime the write button is pressed.
 
@@ -173,6 +183,161 @@ class ConfigureUI:
         """
         # Write the switch config.
         pass
+
+    def interface_status_callback(self) -> None:
+        """
+        This method is called everytime the Interface Status button is pressed.
+        
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current ssh_connection of the device selected from the dropdown menu.
+        connection = self.ssh_connections[self.drop_down.current()]
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Run command
+            output = connection.send_command("show interface status")
+            # Display messagebox with the command output.
+            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
+    def show_log_callback(self) -> None:
+        """
+        This method is called everytime the Show Log button is pressed.
+        
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current ssh_connection of the device selected from the dropdown menu.
+        connection = self.ssh_connections[self.drop_down.current()]
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Run command
+            output = connection.send_command("show log")
+            # Display messagebox with the command output.
+            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
+
+    def test_port_link_callback(self) -> None:
+        """
+        This method is called everytime the Test Port Link Quality button is pressed.
+        
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current ssh_connection of the device selected from the dropdown menu.
+        connection = self.ssh_connections[self.drop_down.current()]
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Run command
+            output = connection.send_command("show interface status")
+            # Display messagebox with the command output.
+            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
+
+    def show_interface_errors_callback(self) -> None:
+        """
+        This method is called everytime the Show Interface Errors button is pressed.
+        
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current ssh_connection of the device selected from the dropdown menu.
+        connection = self.ssh_connections[self.drop_down.current()]
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Run command
+            output = connection.send_command("show interface counter error")
+            # Display messagebox with the command output.
+            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
+
+    def clear_interface_errors_callback(self) -> None:
+        """
+        This method is called everytime the Clear Interface Errors button is pressed.
+        
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current ssh_connection of the device selected from the dropdown menu.
+        connection = self.ssh_connections[self.drop_down.current()]
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Run command
+            output = connection.send_command("clear interface counter error")
+            # Display messagebox with the command output.
+            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
+
+    def port_channel_callback(self) -> None:
+        """
+        This method is called everytime the Create Port Channel button is pressed.
+        
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current ssh_connection of the device selected from the dropdown menu.
+        connection = self.ssh_connections[self.drop_down.current()]
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Run command
+            output = connection.send_command("show interface status")
+            # Display messagebox with the command output.
+            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
         
     def update_window(self) -> None:
         """
@@ -196,9 +361,12 @@ class ConfigureUI:
                     if addr is not None and addr[0] is True:
                         ips.append(f"{addr[1]} {addr[2]}")
 
+                # Remove duplicate entries.
+                ips = list(dict.fromkeys(ips))
+
                 # Print log info.
                 if len(self.ip_list) - len(ips) > 0:
-                    self.logger.info(f"Throwing out {len(self.ip_list) - len(ips)} of {len(self.ip_list)} IPs because they are unreachable.")
+                    self.logger.info(f"Throwing out {len(self.ip_list) - len(ips)} of {len(self.ip_list)} IPs because they are duplicates or unreachable.")
                 # Assign new ip list withing None and False ips.
                 self.ip_list = ips
 
@@ -232,15 +400,26 @@ class ConfigureUI:
                         # Copy devices hostname to ip list.
                         device = self.devices[i]
                         if device is not None and len(device) > 0:
-                            hostname = device["hostname"]
+                            hostname = device["host"]
                             device = f"{addr[0]} {hostname}"
                             self.ip_list[i] = device
+
+                    # Set length of ssh_connection list to the same as devices.
+                    self.ssh_connections = [None] * len(self.devices)
 
                     # Initialize window components.
                     self.initialize_window()
 
         # Only update window components if window is initialized.
         if self.window_is_initialized:
+            # Check if the user has selected a valid option from the dropdown, if they have enable config window frames.
+            if self.drop_down.current() == -1 or self.ssh_connections[self.drop_down.current()] is None or not self.ssh_connections[self.drop_down.current()].is_alive():
+                # Disable window.
+                self.disable()
+            else:
+                # Enable window.
+                self.enable()
+
             # Call window event loop.
             self.window.update()
 
@@ -262,6 +441,77 @@ class ConfigureUI:
             self.window_is_initialized = False
             # Destroy window.
             self.window.destroy()
+
+    def enable(self) -> None:
+        """
+        Sets all of the child objects of each frame to be enabled.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Loop through selector frame.
+        for child in self.selector_frame.winfo_children():
+            # Enable.
+            child.configure(state="normal")
+
+        # Loop through command_button frame.
+        for child in self.command_button_frame.winfo_children():
+            # Enable.
+            child.configure(state="normal")
+
+        # Loop through interface frame.
+        for child in self.interface_frame.winfo_children():
+            # Enable.
+            child.configure(state="normal")
+        
+        # Loop through vlan frame.
+        for child in self.vlan_frame.winfo_children():
+            # Enable.
+            child.configure(state="normal")
+
+        # Loop through upload frame.
+        for child in self.upload_frame.winfo_children():
+            # Enable.
+            child.configure(state="normal")
+
+    def disable(self) -> None:
+        """
+        Sets all of the child objects of each frame to be disabled.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Don't set selector frame. We won't to always be able to select a new device.
+
+        # Loop through command_button frame.
+        for child in self.command_button_frame.winfo_children():
+            # Enable.
+            child.configure(state="disable")
+
+        # Loop through interface frame.
+        for child in self.interface_frame.winfo_children():
+            # Enable.
+            child.configure(state="disable")
+        
+        # Loop through vlan frame.
+        for child in self.vlan_frame.winfo_children():
+            # Enable.
+            child.configure(state="disable")
+
+        # Loop through upload frame.
+        for child in self.upload_frame.winfo_children():
+            # Enable.
+            child.configure(state="disable")
 
     def get_is_window_open(self) -> bool:
         """
