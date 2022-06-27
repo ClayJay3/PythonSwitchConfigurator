@@ -1,11 +1,12 @@
 import logging
-import tkinter as tk
 import netmiko
+import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from threading import Thread
 from typing import Tuple
 
+from interface.popup_window import text_popup
 from utils.open_connection import ssh_autodetect_switchlist_info, ssh
 
 
@@ -20,6 +21,7 @@ class ConfigureUI:
         self.window = None
         self.window_is_open = False
         self.window_is_initialized = False
+        self.is_enabled = False
         self.retrieving_devices = False
         self.grid_size = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         self.font = "antiqueolive"
@@ -158,16 +160,19 @@ class ConfigureUI:
         --------
             Nothing
         """
+        # Get the index of the currently selected device.
+        device_index = self.drop_down.current()
+
         # Check if a valid choice has been made.
-        if self.drop_down.current() != -1:
+        if device_index != -1 and (self.ssh_connections[device_index] is None or not self.ssh_connections[device_index].is_alive()):
             # Get the current selected device.
-            device = self.devices[self.drop_down.current()]
+            device = self.devices[device_index]
             # Print log.
-            self.logger.info(f"Selected device: {self.ip_list[self.drop_down.current()]}. Opening connection...")
+            self.logger.info(f"Selected device: {self.ip_list[device_index]}. Opening connection...")
             # Open ssh connection with switch.
             connection = ssh(device)
             # Store the new connection in the ssh connections list.
-            self.ssh_connections[self.drop_down.current()] = connection
+            self.ssh_connections[device_index] = connection
 
     def write_switch_config(self) -> None:
         """
@@ -203,8 +208,8 @@ class ConfigureUI:
         if connection is not None and connection.is_alive():
             # Run command
             output = connection.send_command("show interface status")
-            # Display messagebox with the command output.
-            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+            # Open a new popup window with the output text.
+            text_popup(output)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -227,9 +232,11 @@ class ConfigureUI:
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
             # Run command
+            connection.enable()
+            connection.send_command("terminal length 0")
             output = connection.send_command("show log")
-            # Display messagebox with the command output.
-            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+            # Open a new popup window with the output text.
+            text_popup(output)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -254,8 +261,8 @@ class ConfigureUI:
         if connection is not None and connection.is_alive():
             # Run command
             output = connection.send_command("show interface status")
-            # Display messagebox with the command output.
-            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+            # Open a new popup window with the output text.
+            text_popup(output)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -280,8 +287,8 @@ class ConfigureUI:
         if connection is not None and connection.is_alive():
             # Run command
             output = connection.send_command("show interface counter error")
-            # Display messagebox with the command output.
-            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+            # Open a new popup window with the output text.
+            text_popup(output)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -305,9 +312,8 @@ class ConfigureUI:
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
             # Run command
-            output = connection.send_command("clear interface counter error")
-            # Display messagebox with the command output.
-            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+            output = connection.send_command("clear counters", expect_string="\[confirm\]")
+            connection.send_command("\n", expect_string="#")
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -416,9 +422,13 @@ class ConfigureUI:
             if self.drop_down.current() == -1 or self.ssh_connections[self.drop_down.current()] is None or not self.ssh_connections[self.drop_down.current()].is_alive():
                 # Disable window.
                 self.disable()
-            else:
+                # Set toggle.
+                self.is_enabled = False
+            elif not self.is_enabled:
                 # Enable window.
                 self.enable()
+                # Set toggle.
+                self.is_enabled = True
 
             # Call window event loop.
             self.window.update()

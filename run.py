@@ -50,7 +50,7 @@ def main() -> None:
         # Update window.
         interface.update_window()
         # Sleep
-        time.sleep(1/60)
+        time.sleep(1/120)
 
 if __name__ == "__main__":
     # Call main function.

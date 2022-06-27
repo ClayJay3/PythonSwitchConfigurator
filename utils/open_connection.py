@@ -33,7 +33,7 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=None) -> str:
     logger = logging.getLogger(__name__)
 
     # Create device dictionary.
-    remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password}
+    remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password, "fast_cli": False, "global_delay_factor": 2}
     # If the device is not a switch codemiko will crash.
     try:
         # Print logging info.
