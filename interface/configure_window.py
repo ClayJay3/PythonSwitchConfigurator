@@ -1,3 +1,4 @@
+import re
 import logging
 import netmiko
 import tkinter as tk
@@ -41,6 +42,10 @@ class ConfigureUI:
         self.devices = []
         self.switch_selection = None
         self.drop_down = None
+        self.interfaces_list = []
+        self.interface_selection = None
+        self.interface_drop_down = None
+        self.text_box = None
 
     def run(self, ips, username, password) -> None:
         """
@@ -83,6 +88,8 @@ class ConfigureUI:
         # Set window variables.
         self.switch_selection = tk.StringVar(self.window)
         self.switch_selection.set("No switch is selected")
+        self.interface_selection = tk.StringVar(self.window)
+        self.interface_selection.set("No interface is selected")
 
         # Setup window grid layout.
         self.window.rowconfigure(self.grid_size, weight=1, minsize=60)
@@ -104,8 +111,6 @@ class ConfigureUI:
         # Create frame for interface configuration.
         self.interface_frame = tk.LabelFrame(master=self.window, text="Interface Config", relief=tk.GROOVE, borderwidth=3)
         self.interface_frame.grid(row=1, rowspan=9, column=0, columnspan=4, sticky=tk.NSEW)
-        self.interface_frame.rowconfigure(0, weight=1)
-        self.interface_frame.columnconfigure(0, weight=1)
         # Create frame for vlan configuration.
         self.vlan_frame = tk.LabelFrame(master=self.window, text="VLAN Config", relief=tk.GROOVE, borderwidth=3)
         self.vlan_frame.grid(row=1, rowspan=9, column=4, columnspan=3, sticky=tk.NSEW)
@@ -121,7 +126,7 @@ class ConfigureUI:
         self.drop_down = ttk.Combobox(master=self.selector_frame, textvariable=self.switch_selection, values=self.ip_list)
         self.drop_down.bind('<<ComboboxSelected>>', self.drop_down_callback)        # Set callback binding for combobox cause it's odd.
         self.drop_down.grid(row=0, column=0, columnspan=7, sticky=tk.NSEW)
-        write_button = tk.Button(master=self.selector_frame,  text="WRITE", foreground="black", background="white", command=self.write_switch_config)
+        write_button = tk.Button(master=self.selector_frame,  text="WRITE", foreground="black", background="white", command=self.write_config_callback)
         write_button.grid(row=0, column=7, columnspan=3, sticky=tk.NSEW)
 
         # Populate quick command frame.
@@ -138,11 +143,21 @@ class ConfigureUI:
         port_channel_button = tk.Button(master=self.command_button_frame,  text="Create Port Channel", foreground="black", background="white", command=self.port_channel_callback)
         port_channel_button.grid(row=0, column=5, columnspan=1, sticky=tk.NSEW)
 
+        # Populate interface configuration frame.
+        select_label = tk.Label(master=self.interface_frame, text="Select Interface:")
+        select_label.grid(row=0, column=0, sticky=tk.EW)
+        self.interface_drop_down = ttk.Combobox(master=self.interface_frame, textvariable=self.interface_selection, values=self.interfaces_list)
+        self.interface_drop_down.bind('<<ComboboxSelected>>', self.select_interface)        # Set callback binding for combobox cause it's odd.
+        self.interface_drop_down.grid(row=0, column=1, columnspan=5, sticky=tk.EW)
+
 
         # Populate upload config frame.
-        text_box = tk.Text(master=self.upload_frame, width=10, height=5)
-        text_box.grid(row=0, rowspan=9, column=0, columnspan=10, sticky=tk.NSEW)
-        write_button = tk.Button(master=self.upload_frame,  text="Upload Config", foreground="black", background="white", command=self.write_switch_config)
+        self.text_box = tk.Text(master=self.upload_frame, width=10, height=5)
+        self.text_box.grid(row=0, rowspan=9, column=0, columnspan=10, sticky=tk.NSEW)
+        scroll=tk.Scrollbar(master=self.upload_frame, orient='vertical', command=self.text_box.yview)    # Add a scrollbar.
+        scroll.grid(row=0, rowspan=9, column=10, sticky=tk.NS)
+        self.text_box['yscrollcommand'] = scroll.set         # Link scroll value back to text box.
+        write_button = tk.Button(master=self.upload_frame,  text="Upload Config", foreground="black", background="white", command=self.upload_config_callback)
         write_button.grid(row=9, column=0, columnspan=10, sticky=tk.NSEW)
 
         # Set window initialized flag.
@@ -163,20 +178,33 @@ class ConfigureUI:
         # Get the index of the currently selected device.
         device_index = self.drop_down.current()
 
+        # Print log.
+        self.logger.info(f"Selected device: {self.ip_list[device_index]}. Getting data...")
+
         # Check if a valid choice has been made.
         if device_index != -1 and (self.ssh_connections[device_index] is None or not self.ssh_connections[device_index].is_alive()):
             # Get the current selected device.
             device = self.devices[device_index]
-            # Print log.
-            self.logger.info(f"Selected device: {self.ip_list[device_index]}. Opening connection...")
             # Open ssh connection with switch.
             connection = ssh(device)
             # Store the new connection in the ssh connections list.
             self.ssh_connections[device_index] = connection
 
-    def write_switch_config(self) -> None:
+        #######################################################################
+        # Update config window component data with the new device.
+        #######################################################################
+        # Enable config window components. Othewise textbox won't update with input.
+        self.enable()
+        # Get device.
+        device = self.devices[device_index]
+        # Update config component.
+        config_data = device["config"]
+        self.text_box.delete("1.0", tk.END)
+        self.text_box.insert(tk.END, config_data)
+
+    def write_config_callback(self):
         """
-        This method is called everytime the write button is pressed.
+        This method is called everytime the WRITE button is pressed.
 
         Parameters:
         -----------
@@ -186,7 +214,6 @@ class ConfigureUI:
         --------
             Nothing
         """
-        # Write the switch config.
         pass
 
     def interface_status_callback(self) -> None:
@@ -201,8 +228,15 @@ class ConfigureUI:
         --------
             Nothing
         """
-        # Get the current ssh_connection of the device selected from the dropdown menu.
-        connection = self.ssh_connections[self.drop_down.current()]
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Sending button command to {device['host']}")
 
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
@@ -226,17 +260,22 @@ class ConfigureUI:
         --------
             Nothing
         """
-        # Get the current ssh_connection of the device selected from the dropdown menu.
-        connection = self.ssh_connections[self.drop_down.current()]
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Sending button command to {device['host']}")
 
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
             # Run command
-            connection.enable()
-            connection.send_command("terminal length 0")
             output = connection.send_command("show log")
             # Open a new popup window with the output text.
-            text_popup(output)
+            text_popup(output, x_grid_size=15, y_grid_size=10)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -254,8 +293,15 @@ class ConfigureUI:
         --------
             Nothing
         """
-        # Get the current ssh_connection of the device selected from the dropdown menu.
-        connection = self.ssh_connections[self.drop_down.current()]
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Sending button command to {device['host']}")
 
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
@@ -280,15 +326,22 @@ class ConfigureUI:
         --------
             Nothing
         """
-        # Get the current ssh_connection of the device selected from the dropdown menu.
-        connection = self.ssh_connections[self.drop_down.current()]
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Sending button command to {device['host']}")
 
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
             # Run command
             output = connection.send_command("show interface counter error")
             # Open a new popup window with the output text.
-            text_popup(output)
+            text_popup(output, x_grid_size=11, y_grid_size=10)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -306,8 +359,15 @@ class ConfigureUI:
         --------
             Nothing
         """
-        # Get the current ssh_connection of the device selected from the dropdown menu.
-        connection = self.ssh_connections[self.drop_down.current()]
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Sending button command to {device['host']}")
 
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
@@ -331,8 +391,15 @@ class ConfigureUI:
         --------
             Nothing
         """
-        # Get the current ssh_connection of the device selected from the dropdown menu.
-        connection = self.ssh_connections[self.drop_down.current()]
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Sending button command to {device['host']}")
 
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
@@ -343,6 +410,111 @@ class ConfigureUI:
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
+    def select_interface(self) -> None:
+        """
+        This method is called everytime a new item is selected from the interface dropdown menu.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        pass
+    
+    def upload_config_callback(self) -> None:
+        """
+        This method is called everytime the Upload Config button is pressed.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get config from textbox.
+        config = self.text_box.get('1.0', tk.END)
+
+        # Start method in new thread.
+        # thread = Thread(target=self.upload_textbox_switch_commands, args=(current_device_index, config,))
+        # thread.start()
+        # thread.join()
+        self.upload_text_switch_commands(current_device_index, config)
+
+    def upload_text_switch_commands(self, current_device_index, config) -> None:
+        """
+        This method gets the data from the config window's textbox and runs the commands in the currently selected switch.
+
+        Parameters:
+        -----------
+            current_device_index - The current index of the device in the drop down.
+            config_commands - The list of commands to execute.
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+        # Get device.
+        device = self.devices[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Writing config to {device['host']}. Please wait...")
+
+        # Make sure connection is still alive.
+        if connection.is_alive():
+            # The send_config_set method is very jank and breaks often between netmiko updates.
+            try:
+                # Split the config up by !.
+                config = re.split("!+", config)
+                # Cutoff the last configured by text.
+                config = config[3:]
+                # Compare the new and old config and only run whats changed.
+                diff = []
+                for section in config:
+                    # If the current line in the textbox config doesn't exist in the running config, then append to new list.
+                    if not section in device["config"]:
+                        # Append to list.
+                        diff.append(section)
+
+                # Turn the list back into a string
+                commands = ""
+                for command in diff:
+                    commands += command
+                # Split the difference list up by newlines.
+                commands = re.split("\n+", commands)
+                # Add config command to command list and end to end of command list. Must do this stuff manually for now because netmiko is brokey.
+                commands.insert(0, "config t")
+
+                # Get privs.
+                connection.enable()
+                # Display info message, so the user doesn't think the program crashed.
+                messagebox.showinfo(title="Info", message="Please wait while your config is being uploaded.", parent=self.window)
+                # Execute switch config.
+                output = connection.send_config_set(commands, exit_config_mode=False)
+                # Open new popup window containing the commands output.
+                text_popup(output)
+
+                # Update device config.
+                new_config = connection.send_command("show run")
+                # Split config text into lines and remove first three.
+                new_config = new_config.split("\n")[3:]
+                # Reassemble.
+                config_output = ""
+                for line in new_config:
+                    config_output += line + "\n"
+                # Store config.
+                device["config"] = config_output
+            except Exception as error:
+                self.logger.critical("A NetMiko issue occured while trying to run the config commands.", stack_info=True, exc_info=error)
 
         
     def update_window(self) -> None:
@@ -486,8 +658,10 @@ class ConfigureUI:
 
         # Loop through upload frame.
         for child in self.upload_frame.winfo_children():
-            # Enable.
-            child.configure(state="normal")
+            # Can't disable the scrollbar.
+            if child.widgetName != "scrollbar":
+                # Enable.
+                child.configure(state="normal")
 
     def disable(self) -> None:
         """
@@ -520,8 +694,10 @@ class ConfigureUI:
 
         # Loop through upload frame.
         for child in self.upload_frame.winfo_children():
-            # Enable.
-            child.configure(state="disable")
+            # Can't disable the scrollbar.
+            if child.widgetName != "scrollbar":
+                # Enable.
+                child.configure(state="disable")
 
     def get_is_window_open(self) -> bool:
         """

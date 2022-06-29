@@ -1,12 +1,14 @@
 import tkinter as tk
 
-def text_popup(text) -> None:
+def text_popup(text, x_grid_size = 10, y_grid_size = 10) -> None:
     """
     This function opens a new read-only text editor window. This window simply displays the given text.
 
     Parameters:
     -----------
         text - The text to be displayed in the new window.
+        x_grid_size - The size of the horizontal grid space.
+        y_grid_size - The size of the vertical grid space.
 
     Returns:
     --------
@@ -25,15 +27,16 @@ def text_popup(text) -> None:
     popup_window.grid_columnconfigure(0, weight=1)
 
     # Setup window grid layout.
-    grid_size = list(range(10))
-    popup_window.rowconfigure(grid_size, weight=1, minsize=60)
-    popup_window.columnconfigure(grid_size, weight=1, minsize=70)
+    row_grid_size = list(range(y_grid_size))
+    column_grid_size = list(range(x_grid_size))
+    popup_window.rowconfigure(row_grid_size, weight=1, minsize=60)
+    popup_window.columnconfigure(column_grid_size, weight=1, minsize=70)
     # Populate upload config frame.
     text_box = tk.Text(master=popup_window, width=10, height=5)
-    text_box.grid(row=0, rowspan=10, column=0, columnspan=10, sticky=tk.NSEW)
+    text_box.grid(row=0, rowspan=y_grid_size, column=0, columnspan=x_grid_size, sticky=tk.NSEW)
     # Add a Scrollbar.
     scroll=tk.Scrollbar(master=popup_window, orient='vertical', command=text_box.yview)
-    scroll.grid(row=0, rowspan=10, column=10, sticky=tk.NS)
+    scroll.grid(row=0, rowspan=y_grid_size, column=x_grid_size, sticky=tk.NS)
     # Link scroll value back to text box.
     text_box['yscrollcommand'] = scroll.set
     # Fill textbox with output text.

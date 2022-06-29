@@ -33,7 +33,7 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=None) -> str:
     logger = logging.getLogger(__name__)
 
     # Create device dictionary.
-    remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password, "fast_cli": False, "global_delay_factor": 2}
+    remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password}
     # If the device is not a switch codemiko will crash.
     try:
         # Print logging info.
@@ -178,6 +178,32 @@ def ssh(device) -> netmiko.ssh_dispatcher:
     except NetmikoTimeoutException:
         # Print log info.
         logger.error(f"Something happened while trying to communicate with device {device['host']}")
+
+    # Elevate privs and prevent the terminal from pausing during long command outputs.
+    connection.enable()
+    connection.send_command("terminal length 0")
+    # Add interface and vlan info to the switch device dictionary.
+    interfaces = connection.send_command("show interface status")
+    vlans = connection.send_command("show vlan brief")
+    config = connection.send_command("show run")
+
+    ###########################################################################
+    # Parse and store interfaces output.
+    ###########################################################################
+    print(interfaces)
+    interfaces = interfaces.split("\n")[1:]
+    
+    ###########################################################################
+    # Parse and store config.
+    ###########################################################################
+    # Split config text into lines and remove first three.
+    config = config.split("\n")[3:]
+    # Reassemble.
+    config_output = ""
+    for line in config:
+        config_output += line + "\n"
+    # Store config.
+    device["config"] = config_output
 
     # Connect and return
     return connection
