@@ -1,10 +1,8 @@
 # Import required packages and modules.
-from concurrent.futures.process import _RemoteTraceback
+import re
 import logging
 from functools import partial
-from multiprocessing import connection
 from multiprocessing.pool import ThreadPool
-from sqlite3 import connect
 import netmiko
 from netmiko.exceptions import NetmikoAuthenticationException, NetmikoTimeoutException
 from netmiko.ssh_dispatcher import ConnectHandler
@@ -179,31 +177,117 @@ def ssh(device) -> netmiko.ssh_dispatcher:
         # Print log info.
         logger.error(f"Something happened while trying to communicate with device {device['host']}")
 
-    # Elevate privs and prevent the terminal from pausing during long command outputs.
-    connection.enable()
-    connection.send_command("terminal length 0")
-    # Add interface and vlan info to the switch device dictionary.
-    interfaces = connection.send_command("show interface status")
-    vlans = connection.send_command("show vlan brief")
-    config = connection.send_command("show run")
-
-    ###########################################################################
-    # Parse and store interfaces output.
-    ###########################################################################
-    print(interfaces)
-    interfaces = interfaces.split("\n")[1:]
-    
-    ###########################################################################
-    # Parse and store config.
-    ###########################################################################
-    # Split config text into lines and remove first three.
-    config = config.split("\n")[3:]
-    # Reassemble.
-    config_output = ""
-    for line in config:
-        config_output += line + "\n"
-    # Store config.
-    device["config"] = config_output
+    # Get device interface, vlan, and config info.
+    interfaces, vlans, config = get_config_info(connection)
+    # Store info in device dictionary.
+    device["interfaces"] = interfaces
+    device["vlans"] = vlans
+    device["config"] = config
 
     # Connect and return
     return connection
+
+def get_config_info(connection) -> netmiko.ssh_dispatcher:
+    """
+    Gathers information on the devices interfaces, vlans, and raw config given a netmiko connection to it.
+
+    Parameters:
+    -----------
+        connection - The netmiko connection session to the device.
+
+    Returns:
+        interfaces - A list containing info about the devices interfaces.
+        vlans - A list containing info about the devices vlans.
+        config - The raw config output from the device.
+    """
+    # Create instance variables.
+    interfaces = []
+    vlans = []
+    config = ""
+
+    # Check if connection is good.
+    if connection is not None and connection.is_alive():
+        # Elevate privs and prevent the terminal from pausing during long command outputs.
+        connection.enable()
+        connection.send_command("terminal length 0")
+
+        ###########################################################################
+        # Parse and store interfaces output.
+        ###########################################################################
+        # Get interface output.
+        interface_output = connection.send_command("show interface status")
+        descriptions = connection.send_command("show interfaces description")
+
+        # Parse interface output.
+        output_split = interface_output.splitlines()[2:]
+        for line in output_split:
+            # Split the current line by spaces.
+            line = re.split(" +", line)
+            # Keep the interface name, and vlan.
+            name = line[0]
+            vlan = line[-4]
+            # Append to interfaces list.
+            interfaces.append([vlan, name])
+
+        # Parse description output.
+        output_split = descriptions.splitlines()[1:]
+        for line in output_split:
+            # Split the current line by spaces.
+            line = re.split(" +", line)
+            # Keep the interface name and description.
+            name = line[0]
+            # Find index of protocol column.
+            try:
+                # Attempt to find up protocal word.
+                index = line.index("up")
+            except ValueError:
+                try:
+                    # If up fails try down.
+                    index = line.index("down")
+                except ValueError:
+                    # If we can't find anything just take the last word.
+                    index = -1
+            # Store everything after the protocol column.
+            description = ""
+            for word in line[index + 2:]:
+                # Add each word to the description string.
+                description += word
+
+            # Find the same interface in the interfaces list and add the description to the list.
+            for interface in interfaces:
+                # Check if the names are the same.
+                if interface[1] == name:
+                    # Append the description.
+                    interface.append(description)
+
+        ###########################################################################
+        # Parse and store vlan output.
+        ###########################################################################
+        # Add interface and vlan info to the switch device dictionary.
+        vlan_output = connection.send_command("show vlan brief")
+        output_split = vlan_output.splitlines()[3:]
+        # Loop through each line and get relavent data.
+        for line in output_split:
+            # Split line into words at each whitespace.
+            line = re.split(" +", line)
+            # Get data.
+            vlan = line[0]
+            name = line[1]
+            # Append to vlan array.
+            vlans.append([vlan, name])
+        
+        ###########################################################################
+        # Parse and store config.
+        ###########################################################################
+        # Get config output.
+        config = connection.send_command("show run")
+        # Split config text into lines and remove first three.
+        config = config.split("\n")[3:]
+        # Reassemble.
+        config_output = ""
+        for line in config:
+            config_output += line + "\n"
+        # Store config.
+        config = config_output
+
+    return interfaces, vlans, config

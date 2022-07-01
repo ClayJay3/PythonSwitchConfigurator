@@ -3,15 +3,379 @@ interface.main_window, read_configs_button_callback, INFO,
 ---------------------------------------------------------
 Pulling switch configs now...
 ---------------------------------------------------------
+utils.ping, ping, ERROR, Unable to talk to 10.20.126.186
+utils.ping, ping, ERROR, Unable to talk to 10.20.126.208
+utils.ping, ping, ERROR, Unable to talk to 10.20.126.222
+utils.ping, ping, INFO, Ping of 10.20.126.254: Host 10.20.126.254 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.112: Host 10.20.126.112 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.211: Host 10.20.126.211 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.241: Host 10.20.126.241 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.200: Host 10.20.126.200 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.218: Host 10.20.126.218 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.199: Host 10.20.126.199 is up!
+utils.ping, ping, INFO, Ping of 10.20.60.252: Host 10.20.60.252 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.223: Host 10.20.126.223 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.181: Host 10.20.126.181 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.57: Host 10.20.126.57 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.224: Host 10.20.126.224 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.183: Host 10.20.126.183 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.233: Host 10.20.126.233 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.212: Host 10.20.126.212 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.248: Host 10.20.126.248 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.220: Host 10.20.126.220 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.250: Host 10.20.126.250 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.226: Host 10.20.126.226 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.217: Host 10.20.126.217 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.245: Host 10.20.126.245 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.221: Host 10.20.126.221 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.206: Host 10.20.126.206 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.244: Host 10.20.126.244 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.249: Host 10.20.126.249 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.198: Host 10.20.126.198 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.189: Host 10.20.126.189 is up!
 utils.ping, ping, INFO, Ping of 10.20.126.113: Host 10.20.126.113 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.219: Host 10.20.126.219 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.240: Host 10.20.126.240 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.247: Host 10.20.126.247 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.229: Host 10.20.126.229 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.234: Host 10.20.126.234 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.225: Host 10.20.126.225 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.230: Host 10.20.126.230 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.197: Host 10.20.126.197 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.232: Host 10.20.126.232 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.227: Host 10.20.126.227 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.236: Host 10.20.126.236 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.228: Host 10.20.126.228 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.231: Host 10.20.126.231 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.210: Host 10.20.126.210 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.238: Host 10.20.126.238 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.214: Host 10.20.126.214 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.235: Host 10.20.126.235 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.215: Host 10.20.126.215 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.246: Host 10.20.126.246 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.216: Host 10.20.126.216 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.242: Host 10.20.126.242 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.204: Host 10.20.126.204 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.203: Host 10.20.126.203 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.243: Host 10.20.126.243 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.202: Host 10.20.126.202 is up!
+utils.ping, ping, INFO, Ping of 10.20.126.237: Host 10.20.126.237 is up!
+interface.configure_window, update_window, INFO, Throwing out 3 of 57 IPs because they are duplicates or unreachable.
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.254
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.183
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.211
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.181
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.204
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.60.252
 utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.113
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.197
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.242
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.217
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.241
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.233
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.231
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.245
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.244
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.243
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.220
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.235
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.249
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.247
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.238
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.232
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.221
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.230
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.246
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.112
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.240
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.225
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.236
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.218
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.229
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.219
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.214
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.227
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.216
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.248
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.223
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.212
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.224
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.228
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.200
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.198
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.189
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.199
 paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.206
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.203
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.250
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.210
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.234
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.202
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.237
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.226
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.215
+utils.open_connection, ssh_autodetect_info, INFO, Autodetecting model and opening connection for 10.20.126.57
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 2.0, client Cisco-1.25)
+paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'Cc********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************c'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************This device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.*********************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'c********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************c'
+paramiko.transport, _log, INFO, Auth banner: b'c********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************c'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Auth banner: b'c********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************c'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Auth banner: b'Cc********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************c'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'Cc********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************c'
+paramiko.transport, _log, INFO, Auth banner: b'c********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************c'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Auth banner: b'\r\n********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n***************************************************\r\n'
+paramiko.transport, _log, INFO, Authentication (password) successful!
 paramiko.transport, _log, INFO, Authentication (password) successful!
 utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Auth banner: b'c********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************c'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
 utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ITConf-Aux#
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-RM1SHIPPING-ACCESS#
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-Furnace-Access#
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-SCRAP-SCALE-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-RM1SHEAR-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-Warehouse-Access#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-TAGGER-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-RM2-PULPIT#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-M2-SHEAR-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: NSKNK-NEW-CORE-B#
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-TOR-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-NURSE-ACCESS1#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-SAFETY-ACCESS#
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ROLLERS-OFFICE-2>
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-BAG2-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-CMD-ACCESS>
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: NSKNK-NEW-CORE-A#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-CCL-PULPIT-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-SCALEHOUSE2#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-BAG1-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ELEC-ACCESS>
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ROLL-MAINT1-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-MELT-PULPIT-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-UPPER-MCC-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ROLL-MAINT2-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-GUARD-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-CAST-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ADMINBLDG-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-OLD-SCALE-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-SCRAP-INSP-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-LEADMAN-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-M2-STACKER-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-SCRAP-MAINT-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-CHARLIE-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ROLL-PULPIT-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK_RM2_TensileLab#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-RM2-RollShop#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ENG-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: BRKNK-PCR0#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-MSSubstation-Access#
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: JOEJOESWITCH#
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ACCOUNTING-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-MAIN-TAGGER-SWITCH#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-MS-StirStation#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: CS-ProjOffice#
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: NKK-CORE-ACCESS1#
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-TINSEL-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: RM2_TRAILER#
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ACCESS-SALES>
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ROLL-OFFICE-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-ROLL-MCC-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+paramiko.transport, _log, INFO, Auth banner: b'C********************  Warning  ********************\r\nThis device is property of Nucor Steel Kankakee.\r\nAccess to this device is restricted to authorized\r\npersons only! Unauthorized access is prohibited.\r\nViolators will be prosecuted.\r\n*****************************************************C'
+paramiko.transport, _log, INFO, Authentication (password) successful!
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-CAST-OFFICE-ACCESS#
+utils.open_connection, ssh_autodetect_info, INFO, Waiting for command prompt...
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-VOIP-SWITCH#
+utils.open_connection, ssh_autodetect_info, INFO, Found prompt: KNK-IT-Access#
 interface.configure_window, initialize_window, INFO, Initializing configuration window...
 interface.configure_window, drop_down_callback, INFO, Selected device: 10.20.126.113 KNK-ITConf-Aux. Getting data...
 paramiko.transport, _log, INFO, Connected (version 1.99, client Cisco-1.25)
 paramiko.transport, _log, INFO, Authentication (password) successful!
-interface.configure_window, close_window, INFO, Configure window exit action has been invoked. Performing closing actions.
+interface.configure_window, port_channel_callback, INFO, Sending button commands to make Po1 on interfaces ['Gi1/0/1', 'Gi1/0/2', 'Gi1/0/3', 'Gi1/0/4'] to KNK-ITConf-Aux
+interface.configure_window, upload_text_switch_commands, INFO, Uploading config to KNK-ITConf-Aux. Please wait...
 interface.main_window, close_window, INFO, Main window exit action has been invoked. Performing closing actions.
+interface.configure_window, close_window, INFO, Configure window exit action has been invoked. Performing closing actions.

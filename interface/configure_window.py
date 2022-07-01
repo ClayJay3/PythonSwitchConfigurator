@@ -1,14 +1,15 @@
 import re
 import logging
+import time
 import netmiko
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from threading import Thread
-from typing import Tuple
+from typing import List, Tuple
 
-from interface.popup_window import text_popup
-from utils.open_connection import ssh_autodetect_switchlist_info, ssh
+from interface.popup_window import ListPopup, MultipleListPopup, text_popup
+from utils.open_connection import get_config_info, ssh_autodetect_switchlist_info, ssh
 
 
 # Create Configure UI window class.
@@ -45,7 +46,13 @@ class ConfigureUI:
         self.interfaces_list = []
         self.interface_selection = None
         self.interface_drop_down = None
+        self.vlans_list = []
+        self.vlan_selection = None
+        self.vlan_drop_down = None
         self.text_box = None
+
+        # This serves as a temp var used by many things, anytime a popup window that is destroyable is made, it's stored here.
+        self.popup = None
 
     def run(self, ips, username, password) -> None:
         """
@@ -90,6 +97,8 @@ class ConfigureUI:
         self.switch_selection.set("No switch is selected")
         self.interface_selection = tk.StringVar(self.window)
         self.interface_selection.set("No interface is selected")
+        self.vlan_selection = tk.StringVar(self.window)
+        self.vlan_selection.set("No vlan is selected")
 
         # Setup window grid layout.
         self.window.rowconfigure(self.grid_size, weight=1, minsize=60)
@@ -111,11 +120,13 @@ class ConfigureUI:
         # Create frame for interface configuration.
         self.interface_frame = tk.LabelFrame(master=self.window, text="Interface Config", relief=tk.GROOVE, borderwidth=3)
         self.interface_frame.grid(row=1, rowspan=9, column=0, columnspan=4, sticky=tk.NSEW)
+        self.interface_frame.rowconfigure(self.grid_size, weight=1)
+        self.interface_frame.columnconfigure(self.grid_size, weight=1)
         # Create frame for vlan configuration.
         self.vlan_frame = tk.LabelFrame(master=self.window, text="VLAN Config", relief=tk.GROOVE, borderwidth=3)
         self.vlan_frame.grid(row=1, rowspan=9, column=4, columnspan=3, sticky=tk.NSEW)
-        self.vlan_frame.rowconfigure(0, weight=1)
-        self.vlan_frame.columnconfigure(0, weight=1)
+        self.vlan_frame.rowconfigure(self.grid_size, weight=1)
+        self.vlan_frame.columnconfigure(self.grid_size, weight=1)
         # Create frame for uploading configuration.
         self.upload_frame = tk.LabelFrame(master=self.window, text="Upload Config", relief=tk.GROOVE, borderwidth=3)
         self.upload_frame.grid(row=1, rowspan=9, column=7, columnspan=3, sticky=tk.NSEW)
@@ -144,12 +155,18 @@ class ConfigureUI:
         port_channel_button.grid(row=0, column=5, columnspan=1, sticky=tk.NSEW)
 
         # Populate interface configuration frame.
-        select_label = tk.Label(master=self.interface_frame, text="Select Interface:")
-        select_label.grid(row=0, column=0, sticky=tk.EW)
+        int_select_label = tk.Label(master=self.interface_frame, text="Select Interface:")
+        int_select_label.grid(row=0, rowspan=1, column=0, columnspan=2, sticky=tk.EW)
         self.interface_drop_down = ttk.Combobox(master=self.interface_frame, textvariable=self.interface_selection, values=self.interfaces_list)
         self.interface_drop_down.bind('<<ComboboxSelected>>', self.select_interface)        # Set callback binding for combobox cause it's odd.
-        self.interface_drop_down.grid(row=0, column=1, columnspan=5, sticky=tk.EW)
+        self.interface_drop_down.grid(row=0, rowspan=1, column=2, columnspan=8, sticky=tk.EW)
 
+        # Populate vlan configuration frame.
+        vlan_select_label = tk.Label(master=self.vlan_frame, text="Select VLAN:")
+        vlan_select_label.grid(row=0, rowspan=1, column=0, columnspan=2, sticky=tk.EW)
+        self.vlan_drop_down = ttk.Combobox(master=self.vlan_frame, textvariable=self.vlan_selection, values=self.vlans_list)
+        self.vlan_drop_down.bind('<<ComboboxSelected>>', self.select_vlan)        # Set callback binding for combobox cause it's odd.
+        self.vlan_drop_down.grid(row=0, rowspan=1, column=2, columnspan=8, sticky=tk.EW)
 
         # Populate upload config frame.
         self.text_box = tk.Text(master=self.upload_frame, width=10, height=5)
@@ -177,6 +194,8 @@ class ConfigureUI:
         """
         # Get the index of the currently selected device.
         device_index = self.drop_down.current()
+        # Get device connection.
+        connection = self.ssh_connections[device_index]
 
         # Print log.
         self.logger.info(f"Selected device: {self.ip_list[device_index]}. Getting data...")
@@ -193,14 +212,24 @@ class ConfigureUI:
         #######################################################################
         # Update config window component data with the new device.
         #######################################################################
-        # Enable config window components. Othewise textbox won't update with input.
-        self.enable()
-        # Get device.
-        device = self.devices[device_index]
-        # Update config component.
-        config_data = device["config"]
-        self.text_box.delete("1.0", tk.END)
-        self.text_box.insert(tk.END, config_data)
+        # Check if connection is good.
+        if connection is not None and connection.is_alive():
+            # Enable config window components. Othewise textbox won't update with input.
+            self.enable()
+            # Get device.
+            device = self.devices[device_index]
+            # Update interfaces list and drop down menu.
+            self.interfaces_list = device["interfaces"]
+            self.interface_drop_down["values"] = [val[1:] for val in self.interfaces_list]
+            self.interface_selection.set("No interface is selected")
+            # Update vlans list and drop down menu.
+            self.vlans_list = device["vlans"]
+            self.vlan_drop_down["values"] = self.vlans_list
+            self.vlan_selection.set("No vlan is selected")
+            # Update config component.
+            config_data = device["config"]
+            self.text_box.delete("1.0", tk.END)
+            self.text_box.insert(tk.END, config_data)
 
     def write_config_callback(self):
         """
@@ -236,7 +265,7 @@ class ConfigureUI:
         connection = self.ssh_connections[current_device_index]
 
         # Print log.
-        self.logger.info(f"Sending button command to {device['host']}")
+        self.logger.info(f"Sending button command 'interface status' to {device['host']}")
 
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
@@ -268,7 +297,7 @@ class ConfigureUI:
         connection = self.ssh_connections[current_device_index]
 
         # Print log.
-        self.logger.info(f"Sending button command to {device['host']}")
+        self.logger.info(f"Sending button command 'show log' to {device['host']}")
 
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
@@ -300,15 +329,25 @@ class ConfigureUI:
         # Get connection of device.
         connection = self.ssh_connections[current_device_index]
 
-        # Print log.
-        self.logger.info(f"Sending button command to {device['host']}")
-
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
-            # Run command
-            output = connection.send_command("show interface status")
-            # Open a new popup window with the output text.
-            text_popup(output)
+            # Open a window asking for the user to select an interface from the dropdown menu.
+            self.popup = ListPopup()
+            selection = self.popup.open([val[1] for val in self.interfaces_list], prompt="Select port to test:")
+            # Check if selection is valid.
+            if selection is not None:
+                # Run command.
+                output = connection.send_command(f"test cable tdr interface {selection}")
+                # Sleep to give time for the command to run.
+                time.sleep(0.1)
+                # Get test results.
+                output = connection.send_command(f"show cable tdr interface {selection}")
+                
+                # Print log.
+                self.logger.info(f"Sending button command 'test cable tdr interface {selection}' to {device['host']}")
+
+                # Open a new popup window with the output text.
+                text_popup(output, x_grid_size=10, y_grid_size=3)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -334,7 +373,7 @@ class ConfigureUI:
         connection = self.ssh_connections[current_device_index]
 
         # Print log.
-        self.logger.info(f"Sending button command to {device['host']}")
+        self.logger.info(f"Sending button command 'show interface counter error' to {device['host']}")
 
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
@@ -367,7 +406,7 @@ class ConfigureUI:
         connection = self.ssh_connections[current_device_index]
 
         # Print log.
-        self.logger.info(f"Sending button command to {device['host']}")
+        self.logger.info(f"Sending button command 'clear counters' to {device['host']}")
 
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
@@ -391,6 +430,10 @@ class ConfigureUI:
         --------
             Nothing
         """
+        # Create instance variables.
+        selections = None
+        channel_number = None
+
         # Get the current index of the device selected from the dropdown menu.
         current_device_index = self.drop_down.current()
         # Get device.
@@ -398,26 +441,76 @@ class ConfigureUI:
         # Get connection of device.
         connection = self.ssh_connections[current_device_index]
 
-        # Print log.
-        self.logger.info(f"Sending button command to {device['host']}")
-
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
-            # Run command
-            output = connection.send_command("show interface status")
-            # Display messagebox with the command output.
-            messagebox.showinfo(title="Command Output", message=output, parent=self.window)
+            # Open a window asking for the user to select interfaces from the dropdown menu.
+            self.popup = MultipleListPopup()
+            selections = self.popup.open([val[1] for val in self.interfaces_list], prompt="Choose your interfaces: ")
+            # Check if selections completed successfully, if so then continue to ask for channel number.\
+            if selections is not None:
+                # Open a popup window and ask user what number port channel interface they want to connection to.
+                self.popup = ListPopup()
+                channel_number = self.popup.open(list(range(1,10)), prompt="Choose the port channel number:")
+
+            # Check if we got all info from the user before running commands.
+            command_list = ['config t']
+            if channel_number is not None:
+                # Loop through each interface and build a command config list.
+                for interface in selections:
+                    command_list.append(f"interface {interface}")
+                    command_list.append(f"channel-group {channel_number} mode active")
+                # Exit config mode.
+                command_list.append("end")
+
+                # Print log.
+                self.logger.info(f"Sending button commands to make Po{channel_number} on interfaces {selections} to {device['host']}")
+                # Execute switch config.
+                output = connection.send_config_set(command_list, exit_config_mode=False)
+
+                # Update interface, vlans, and config after adding port channel.
+                interfaces, vlans, config = get_config_info(connection)
+                # Store info in device dictionary.
+                device["interfaces"] = interfaces
+                device["vlans"] = vlans
+                device["config"] = config
+
+                # Update interfaces and vlan lists and dropdowns.
+                self.interfaces_list = device["interfaces"]
+                self.interface_drop_down["values"] = [val[1:] for val in self.interfaces_list]
+                self.vlans_list = device["vlans"]
+                self.vlan_drop_down["values"] = self.vlans_list
+
+                # Update config textbox component.
+                self.text_box.delete("1.0", tk.END)
+                self.text_box.insert(tk.END, config)
+
+                # Open text window with the output.
+                text_popup(output)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
 
-    def select_interface(self) -> None:
+    def select_interface(self, event) -> None:
         """
         This method is called everytime a new item is selected from the interface dropdown menu.
 
         Parameters:
         -----------
-            None
+            event - Given to us by the ComboBox function, kinda useless right now.
+
+        Returns:
+        --------
+            Nothing
+        """
+        pass
+
+    def select_vlan(self, event) -> None:
+        """
+        This method is called everytime a new item is selected from the vlan dropdown menu.
+
+        Parameters:
+        -----------
+            event - Given to us by the ComboBox function, kinda useless right now.
 
         Returns:
         --------
@@ -439,6 +532,9 @@ class ConfigureUI:
         """
         # Get the current index of the device selected from the dropdown menu.
         current_device_index = self.drop_down.current()
+        # Get device and device connection.
+        device = self.devices[current_device_index]
+        connection = self.ssh_connections[current_device_index]
         # Get config from textbox.
         config = self.text_box.get('1.0', tk.END)
 
@@ -447,6 +543,23 @@ class ConfigureUI:
         # thread.start()
         # thread.join()
         self.upload_text_switch_commands(current_device_index, config)
+
+        # Update device dictionary after uploading config.
+        interfaces, vlans, config = get_config_info(connection)
+        # Store info in device dictionary.
+        device["interfaces"] = interfaces
+        device["vlans"] = vlans
+        device["config"] = config
+
+        # Update interfaces and vlan lists and dropdowns.
+        self.interfaces_list = device["interfaces"]
+        self.interface_drop_down["values"] = [val[1:] for val in self.interfaces_list]
+        self.vlans_list = device["vlans"]
+        self.vlan_drop_down["values"] = self.vlans_list
+
+        # Update config textbox component.
+        self.text_box.delete("1.0", tk.END)
+        self.text_box.insert(tk.END, config)
 
     def upload_text_switch_commands(self, current_device_index, config) -> None:
         """
@@ -467,7 +580,7 @@ class ConfigureUI:
         device = self.devices[current_device_index]
 
         # Print log.
-        self.logger.info(f"Writing config to {device['host']}. Please wait...")
+        self.logger.info(f"Uploading config to {device['host']}. Please wait...")
 
         # Make sure connection is still alive.
         if connection.is_alive():
@@ -502,17 +615,6 @@ class ConfigureUI:
                 output = connection.send_config_set(commands, exit_config_mode=False)
                 # Open new popup window containing the commands output.
                 text_popup(output)
-
-                # Update device config.
-                new_config = connection.send_command("show run")
-                # Split config text into lines and remove first three.
-                new_config = new_config.split("\n")[3:]
-                # Reassemble.
-                config_output = ""
-                for line in new_config:
-                    config_output += line + "\n"
-                # Store config.
-                device["config"] = config_output
             except Exception as error:
                 self.logger.critical("A NetMiko issue occured while trying to run the config commands.", stack_info=True, exc_info=error)
 
@@ -615,6 +717,10 @@ class ConfigureUI:
         # Clear arrays.
         self.ip_list.clear()
         self.devices.clear()
+        # Close any popup windows.
+        if self.popup is not None and self.popup.get_is_window_open():
+            # Close window.
+            self.popup.close_window()
         # Close window.
         if self.window_is_initialized:
             # Print info.
