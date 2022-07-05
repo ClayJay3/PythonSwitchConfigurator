@@ -1,12 +1,14 @@
+from inspect import stack
 import re
 import logging
 import time
 import netmiko
+import subprocess
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from threading import Thread
-from typing import List, Tuple
+from typing import Tuple
 
 from interface.popup_window import ListPopup, MultipleListPopup, text_popup
 from utils.open_connection import get_config_info, ssh_autodetect_switchlist_info, ssh
@@ -151,8 +153,16 @@ class ConfigureUI:
         show_int_err_button.grid(row=0, column=3, columnspan=1, sticky=tk.NSEW)
         clr_int_err_button = tk.Button(master=self.command_button_frame,  text="Clear Interface Errors", foreground="black", background="white", command=self.clear_interface_errors_callback)
         clr_int_err_button.grid(row=0, column=4, columnspan=1, sticky=tk.NSEW)
+        cdp_neighbors_button = tk.Button(master=self.command_button_frame,  text="CDP Neighbors", foreground="black", background="white", command=self.cdp_neighbors_callback)
+        cdp_neighbors_button.grid(row=0, column=5, columnspan=1, sticky=tk.NSEW)
+        etherchannel_button = tk.Button(master=self.command_button_frame,  text="Etherchannel Detail", foreground="black", background="white", command=self.etherchannel_detail_callback)
+        etherchannel_button.grid(row=0, column=6, columnspan=1, sticky=tk.NSEW)
+        tranceiver_button = tk.Button(master=self.command_button_frame,  text="Transceiver Detail", foreground="black", background="white", command=self.transceiver_detail_callback)
+        tranceiver_button.grid(row=0, column=7, columnspan=1, sticky=tk.NSEW)
         port_channel_button = tk.Button(master=self.command_button_frame,  text="Create Port Channel", foreground="black", background="white", command=self.port_channel_callback)
-        port_channel_button.grid(row=0, column=5, columnspan=1, sticky=tk.NSEW)
+        port_channel_button.grid(row=0, column=8, columnspan=1, sticky=tk.NSEW)
+        port_channel_button = tk.Button(master=self.command_button_frame,  text="Console", foreground="black", background="white", command=self.console_callback)
+        port_channel_button.grid(row=0, column=9, columnspan=1, sticky=tk.NSEW)
 
         # Populate interface configuration frame.
         int_select_label = tk.Label(master=self.interface_frame, text="Select Interface:")
@@ -417,6 +427,102 @@ class ConfigureUI:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
 
+    def cdp_neighbors_callback(self) -> None:
+        """
+        This method is called everytime the CDP Neighbors button is pressed.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Sending button command 'show cdp neighbors' to {device['host']}")
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Run command
+            output = connection.send_command("show cdp neighbors")
+            # Open a new popup window with the output text.
+            text_popup(output, x_grid_size=11, y_grid_size=10)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
+    def etherchannel_detail_callback(self) -> None:
+        """
+        This method is called everytime the Etherchannel Detail button is pressed.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Sending button command 'show etherchannel detail' to {device['host']}")
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Run command
+            output = connection.send_command("show etherchannel detail")
+            # Open a new popup window with the output text.
+            text_popup(output, x_grid_size=11, y_grid_size=10)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
+    def transceiver_detail_callback(self) -> None:
+        """
+        This method is called everytime the Transceiver Detail button is pressed.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Sending button command 'show interfaces transceiver detail' to {device['host']}")
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Run command
+            output = connection.send_command("show interfaces transceiver detail")
+            # Open a new popup window with the output text.
+            text_popup(output, x_grid_size=11, y_grid_size=10)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
 
     def port_channel_callback(self) -> None:
         """
@@ -464,8 +570,17 @@ class ConfigureUI:
 
                 # Print log.
                 self.logger.info(f"Sending button commands to make Po{channel_number} on interfaces {selections} to {device['host']}")
-                # Execute switch config.
-                output = connection.send_config_set(command_list, exit_config_mode=False)
+                # Send config set will sometimes bug/timeout. Not my problem.
+                try:
+                    # Execute switch config.
+                    output = connection.send_config_set(command_list, exit_config_mode=False)
+                    # Print log.
+                    self.logger.info(f"Successfully created port channel Po{channel_number} on {device['host']}")
+                except Exception as error:
+                    # Print log.
+                    self.logger.error("Something goofy happened while sending port channel commands: ", exc_info=error, stack_info=True)
+                    # More debug.
+                    print("Attempted command list:", command_list)
 
                 # Update interface, vlans, and config after adding port channel.
                 interfaces, vlans, config = get_config_info(connection)
@@ -489,6 +604,29 @@ class ConfigureUI:
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
+    def console_callback(self) -> None:
+        """
+        This method is called everytime the Console button is pressed.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get current device ip.
+        addr = device["ip_address"]
+
+
+        # Open new CMD window with an ssh connection to the switch.
+        subprocess.Popen(f"start /wait ssh {self.username}@{addr}", shell=True)
 
     def select_interface(self, event) -> None:
         """

@@ -128,8 +128,10 @@ class ListPopup():
         --------
             Nothing
         """
-        # Store the current selected value in the user submit variable.
-        self.user_submitted_selection = self.current_selection.get()
+        # Check if a selection has been made.
+        if self.current_selection.get() != "No selection":
+            # Store the current selected value in the user submit variable.
+            self.user_submitted_selection = self.current_selection.get()
 
     def close_window(self) -> None:
         """
