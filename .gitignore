@@ -27,8 +27,8 @@ share/python-wheels/
 MANIFEST
 
 # Exclude text files and log files.
-.log
-.txt
+*.log
+*.txt
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
