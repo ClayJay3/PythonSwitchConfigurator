@@ -1,14 +1,13 @@
-from inspect import stack
 import re
 import logging
 import time
-import netmiko
 import subprocess
 import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from threading import Thread
 from typing import Tuple
+import netmiko
 
 from interface.popup_window import ListPopup, MultipleListPopup, text_popup
 from utils.open_connection import get_config_info, ssh_autodetect_switchlist_info, ssh
@@ -25,7 +24,7 @@ class ConfigureUI:
         self.window = None
         self.window_is_open = False
         self.window_is_initialized = False
-        self.is_enabled = False
+        self.is_enabled = True
         self.retrieving_devices = False
         self.grid_size = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         self.font = "antiqueolive"
@@ -37,7 +36,7 @@ class ConfigureUI:
         self.vlan_frame = None
         self.upload_frame = None
 
-        # Window 
+        # Window elements and objects.
         self.username = None
         self.password = None
         self.ip_list = []
@@ -48,6 +47,16 @@ class ConfigureUI:
         self.interfaces_list = []
         self.interface_selection = None
         self.interface_drop_down = None
+        self.interface_description_box = None
+        self.int_shutdown = None
+        self.sw_mo_acc_check = None
+        self.spantree_portfast_check = None
+        self.spantree_bpduguard_check = None
+        self.sw_mo_trunk_check = None
+        self.access_vlan_box = None
+        self.spantree_portfast = None
+        self.spantree_bpduguard = None
+        self.trunk_vlan_box = None
         self.vlans_list = []
         self.vlan_selection = None
         self.vlan_drop_down = None
@@ -101,6 +110,11 @@ class ConfigureUI:
         self.interface_selection.set("No interface is selected")
         self.vlan_selection = tk.StringVar(self.window)
         self.vlan_selection.set("No vlan is selected")
+        self.int_shutdown = tk.BooleanVar(self.window)
+        self.sw_mo_acc_check = tk.BooleanVar(self.window)
+        self.spantree_portfast_check = tk.BooleanVar(self.window)
+        self.spantree_bpduguard_check = tk.BooleanVar(self.window)
+        self.sw_mo_trunk_check = tk.BooleanVar(self.window)
 
         # Setup window grid layout.
         self.window.rowconfigure(self.grid_size, weight=1, minsize=60)
@@ -161,15 +175,41 @@ class ConfigureUI:
         tranceiver_button.grid(row=0, column=7, columnspan=1, sticky=tk.NSEW)
         port_channel_button = tk.Button(master=self.command_button_frame,  text="Create Port Channel", foreground="black", background="white", command=self.port_channel_callback)
         port_channel_button.grid(row=0, column=8, columnspan=1, sticky=tk.NSEW)
-        port_channel_button = tk.Button(master=self.command_button_frame,  text="Console", foreground="black", background="white", command=self.console_callback)
-        port_channel_button.grid(row=0, column=9, columnspan=1, sticky=tk.NSEW)
+        console_button = tk.Button(master=self.command_button_frame,  text="Console", foreground="black", background="white", command=self.console_callback)
+        console_button.grid(row=0, column=9, columnspan=1, sticky=tk.NSEW)
 
         # Populate interface configuration frame.
+        desc_validate = self.interface_frame.register(self.description_box_validate)
+        vlan_validate = self.interface_frame.register(self.vlan_box_validate)
         int_select_label = tk.Label(master=self.interface_frame, text="Select Interface:")
         int_select_label.grid(row=0, rowspan=1, column=0, columnspan=2, sticky=tk.EW)
         self.interface_drop_down = ttk.Combobox(master=self.interface_frame, textvariable=self.interface_selection, values=self.interfaces_list)
         self.interface_drop_down.bind('<<ComboboxSelected>>', self.select_interface)        # Set callback binding for combobox cause it's odd.
         self.interface_drop_down.grid(row=0, rowspan=1, column=2, columnspan=8, sticky=tk.EW)
+        description_label = tk.Label(master=self.interface_frame, text="Description: ")
+        description_label.grid(row=1, rowspan=1, column=0, columnspan=2, sticky=tk.EW)
+        self.interface_description_box = tk.Entry(master=self.interface_frame, width=10, validate="focus", validatecommand=(desc_validate, '%P'))
+        self.interface_description_box.grid(row=1, column=2, columnspan=8, sticky=tk.EW)
+        int_shutdown = tk.Checkbutton(master=self.interface_frame, text='shutdown', variable=self.int_shutdown, onvalue=True, offvalue=False, command=self.shutdown_callback)
+        int_shutdown.grid(row=2, rowspan=1, column=0, columnspan=10, sticky=tk.W)
+        sw_mo_acc_checkbox = tk.Checkbutton(master=self.interface_frame, text='switchport mode access', variable=self.sw_mo_acc_check, onvalue=True, offvalue=False, command=self.sw_mo_acc_callback)
+        sw_mo_acc_checkbox.grid(row=3, rowspan=1, column=0, columnspan=10, sticky=tk.W)
+        sw_mo_acc_label = tk.Label(master=self.interface_frame, text="switchport access vlan ")
+        sw_mo_acc_label.grid(row=4, rowspan=1, column=0, columnspan=2, sticky=tk.W)
+        self.access_vlan_box = tk.Entry(master=self.interface_frame, width=10, validate="focus", validatecommand=(vlan_validate, "%P"))
+        self.access_vlan_box.grid(row=4, column=2, columnspan=8, sticky=tk.EW)
+        self.spantree_portfast = tk.Checkbutton(master=self.interface_frame, text='spanning-tree portfast', variable=self.spantree_portfast_check, onvalue=True, offvalue=False)
+        self.spantree_portfast.grid(row=5, rowspan=1, column=0, columnspan=5, sticky=tk.W)
+        self.spantree_bpduguard = tk.Checkbutton(master=self.interface_frame, text='spanning-tree bpduguard', variable=self.spantree_bpduguard_check, onvalue=True, offvalue=False)
+        self.spantree_bpduguard.grid(row=5, rowspan=1, column=5, columnspan=5, sticky=tk.W)
+        sw_mo_trunk_checkbox = tk.Checkbutton(master=self.interface_frame, text='switchport mode trunk', variable=self.sw_mo_trunk_check, onvalue=True, offvalue=False, command=self.sw_mo_trunk_callback)
+        sw_mo_trunk_checkbox.grid(row=6, rowspan=1, column=0, columnspan=10, sticky=tk.W)
+        sw_mo_acc_label = tk.Label(master=self.interface_frame, text="switchport trunk native vlan ")
+        sw_mo_acc_label.grid(row=7, rowspan=1, column=0, columnspan=2, sticky=tk.W)
+        self.trunk_vlan_box = tk.Entry(master=self.interface_frame, width=10, validate="focus", validatecommand=(vlan_validate, "%P"))
+        self.trunk_vlan_box.grid(row=7, column=2, columnspan=8, sticky=tk.EW)
+        write_button = tk.Button(master=self.interface_frame,  text="Set Interface", foreground="black", background="white", command=self.interface_submit_callback)
+        write_button.grid(row=9, column=0, columnspan=10, sticky=tk.NSEW)
 
         # Populate vlan configuration frame.
         vlan_select_label = tk.Label(master=self.vlan_frame, text="Select VLAN:")
@@ -190,6 +230,12 @@ class ConfigureUI:
         # Set window initialized flag.
         self.window_is_initialized = True
 
+    ###########################################################################
+    #
+    #                           DROPDOWN
+    #                             FRAME
+    #
+    ###########################################################################
     def drop_down_callback(self, event) -> None:
         """
         This method is called everytime a new item is selected in the dropdown menu.
@@ -230,16 +276,28 @@ class ConfigureUI:
             device = self.devices[device_index]
             # Update interfaces list and drop down menu.
             self.interfaces_list = device["interfaces"]
-            self.interface_drop_down["values"] = [val[1:] for val in self.interfaces_list]
+            self.interface_drop_down["values"] = [interface["name"] + " " + interface["description"] for interface in self.interfaces_list]
             self.interface_selection.set("No interface is selected")
             # Update vlans list and drop down menu.
             self.vlans_list = device["vlans"]
-            self.vlan_drop_down["values"] = self.vlans_list
+            self.vlan_drop_down["values"] = [vlan["vlan"] + " " + vlan["name"] for vlan in self.vlans_list]
             self.vlan_selection.set("No vlan is selected")
             # Update config component.
             config_data = device["config"]
             self.text_box.delete("1.0", tk.END)
             self.text_box.insert(tk.END, config_data)
+
+            # Disable interface and vlan frame items.
+            for child in self.interface_frame.winfo_children():
+                # Only disable if the child isn't the dropdown.
+                if child.widgetName != "ttk::combobox":
+                    # Disable element.
+                    child.configure(state="disable")
+            for child in self.vlan_frame.winfo_children():
+                # Only disable if the child isn't the dropdown.
+                if child.widgetName != "ttk::combobox":
+                    # Disable element.
+                    child.configure(state="disable")
 
     def write_config_callback(self):
         """
@@ -253,12 +311,23 @@ class ConfigureUI:
         --------
             Nothing
         """
-        pass
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+        # Write config.
+        connection.save_config()
 
+    ###########################################################################
+    #
+    #                             BUTTON
+    #                             FRAME
+    #
+    ###########################################################################
     def interface_status_callback(self) -> None:
         """
         This method is called everytime the Interface Status button is pressed.
-        
+
         Parameters:
         -----------
             None
@@ -290,7 +359,7 @@ class ConfigureUI:
     def show_log_callback(self) -> None:
         """
         This method is called everytime the Show Log button is pressed.
-        
+
         Parameters:
         -----------
             None
@@ -343,7 +412,7 @@ class ConfigureUI:
         if connection is not None and connection.is_alive():
             # Open a window asking for the user to select an interface from the dropdown menu.
             self.popup = ListPopup()
-            selection = self.popup.open([val[1] for val in self.interfaces_list], prompt="Select port to test:")
+            selection = self.popup.open([interface["name"] for interface in self.interfaces_list], prompt="Select port to test:")
             # Check if selection is valid.
             if selection is not None:
                 # Run command.
@@ -551,7 +620,7 @@ class ConfigureUI:
         if connection is not None and connection.is_alive():
             # Open a window asking for the user to select interfaces from the dropdown menu.
             self.popup = MultipleListPopup()
-            selections = self.popup.open([val[1] for val in self.interfaces_list], prompt="Choose your interfaces: ")
+            selections = self.popup.open([interface["name"] for interface in self.interfaces_list], prompt="Choose your interfaces: ")
             # Check if selections completed successfully, if so then continue to ask for channel number.\
             if selections is not None:
                 # Open a popup window and ask user what number port channel interface they want to connection to.
@@ -572,6 +641,8 @@ class ConfigureUI:
                 self.logger.info(f"Sending button commands to make Po{channel_number} on interfaces {selections} to {device['host']}")
                 # Send config set will sometimes bug/timeout. Not my problem.
                 try:
+                    # Get privs.
+                    connection.enable()
                     # Execute switch config.
                     output = connection.send_config_set(command_list, exit_config_mode=False)
                     # Print log.
@@ -580,24 +651,10 @@ class ConfigureUI:
                     # Print log.
                     self.logger.error("Something goofy happened while sending port channel commands: ", exc_info=error, stack_info=True)
                     # More debug.
-                    print("Attempted command list:", command_list)
+                    self.logger.info(f"Attempted command list: {command_list}")
 
                 # Update interface, vlans, and config after adding port channel.
-                interfaces, vlans, config = get_config_info(connection)
-                # Store info in device dictionary.
-                device["interfaces"] = interfaces
-                device["vlans"] = vlans
-                device["config"] = config
-
-                # Update interfaces and vlan lists and dropdowns.
-                self.interfaces_list = device["interfaces"]
-                self.interface_drop_down["values"] = [val[1:] for val in self.interfaces_list]
-                self.vlans_list = device["vlans"]
-                self.vlan_drop_down["values"] = self.vlans_list
-
-                # Update config textbox component.
-                self.text_box.delete("1.0", tk.END)
-                self.text_box.insert(tk.END, config)
+                self.refresh_device_info(connection, device)
 
                 # Open text window with the output.
                 text_popup(output)
@@ -628,6 +685,13 @@ class ConfigureUI:
         # Open new CMD window with an ssh connection to the switch.
         subprocess.Popen(f"start /wait ssh {self.username}@{addr}", shell=True)
 
+
+    ###########################################################################
+    #
+    #                           INTERFACE
+    #                             FRAME
+    #
+    ###########################################################################
     def select_interface(self, event) -> None:
         """
         This method is called everytime a new item is selected from the interface dropdown menu.
@@ -640,8 +704,187 @@ class ConfigureUI:
         --------
             Nothing
         """
-        pass
+        # Get the current index of the device selected from the dropdown menu.
+        current_interface_index = self.interface_drop_down.current()
+        # Get current interface.
+        interface = self.interfaces_list[current_interface_index]
 
+        # Enable checkboxes and entry boxes.
+        for child in self.interface_frame.winfo_children():
+            # Enable element.
+            child.configure(state="normal")
+
+        # Update interface description box.
+        self.interface_description_box.delete(0, tk.END)
+        self.interface_description_box.insert(0, interface["description"])
+
+        # Update shutdown checkbox.
+        self.int_shutdown.set(interface["shutdown"])
+
+        # Update switch mode access checkbox.
+        self.sw_mo_acc_check.set(interface["switchport mode access"])
+        # If sw mo acc checkbox is enabled. then enable the entry box for the vlan.
+        if self.sw_mo_acc_check.get():
+            # Enable the entry box.
+            self.access_vlan_box.configure(state="normal")
+            self.spantree_portfast.configure(state="normal")
+            self.spantree_bpduguard.configure(state="normal")
+            # Get data.
+            self.access_vlan_box.delete(0, tk.END)
+            self.access_vlan_box.insert(0, interface["switchport access vlan"])
+            self.spantree_portfast_check.set(interface["spanning-tree portfast"])
+            self.spantree_bpduguard_check.set(interface["spanning-tree bpduguard enable"])
+        else:
+            # Disable entry box.
+            self.access_vlan_box.configure(state="disable")
+            self.spantree_portfast.configure(state="disable")
+            self.spantree_bpduguard.configure(state="disable")
+
+        self.sw_mo_trunk_check.set(interface["switchport mode trunk"])
+        # If sw mo acc checkbox is enabled. then enable the entry box for the vlan.
+        if self.sw_mo_trunk_check.get():
+            # Enable the entry box.
+            self.trunk_vlan_box.configure(state="normal")
+            # Get data.
+            self.trunk_vlan_box.delete(0, tk.END)
+            self.trunk_vlan_box.insert(0, interface["switchport trunk native vlan"])
+        else:
+            # Disable entry box.
+            self.trunk_vlan_box.configure(state="disable")
+
+    def shutdown_callback(self) -> None:
+        """
+        This method is called everytime the shutdown checkbox is ticked.
+        """
+        # Set flag indicating that the inteface has changed, and needs to be updated.
+        interface = self.interfaces_list[self.interface_drop_down.current()]
+        interface["config_has_changed"] = True
+
+    def sw_mo_acc_callback(self) -> None:
+        """
+        This method is called everytime the switch mode access checkbox is ticked.
+        """
+        # Enable access elements.
+        self.access_vlan_box.configure(state="normal")
+        self.spantree_portfast.configure(state="normal")
+        self.spantree_bpduguard.configure(state="normal")
+        # Disable trunk elements.
+        self.sw_mo_trunk_check.set(False)
+        self.trunk_vlan_box.configure(state="disable")
+        # Set flag indicating that the inteface has changed, and needs to be updated.
+        interface = self.interfaces_list[self.interface_drop_down.current()]
+        interface["config_has_changed"] = True
+
+    def sw_mo_trunk_callback(self) -> None:
+        """
+        This method is called everytime the switch mode trunk checkbox is ticked.
+        """
+        # Enable access elements.
+        self.trunk_vlan_box.configure(state="normal")
+        # Disable access elements.
+        self.sw_mo_acc_check.set(False)
+        self.access_vlan_box.configure(state="disable")
+        self.spantree_portfast.configure(state="disable")
+        self.spantree_bpduguard.configure(state="disable")
+        # Set flag indicating that the inteface has changed, and needs to be updated.
+        interface = self.interfaces_list[self.interface_drop_down.current()]
+        interface["config_has_changed"] = True
+
+    def description_box_validate(self, entry_contents) -> None:
+        """
+        This method is called everytime the contents of the description box are changed. It verifies input validity.
+
+        Parameters:
+        -----------
+            entry_contents - the text from the entry box.
+
+        Returns:
+        --------
+            bool - True if input is valid.
+        """
+        # Set flag indicating that the inteface has changed, and needs to be updated.
+        interface = self.interfaces_list[self.interface_drop_down.current()]
+        interface["config_has_changed"] = True
+
+        print("EEEEEEEEEEEEEEEEEEE")
+
+        # Just return true for now. So far, I can't think of any restrictions that the switch description needs.
+        return True
+
+    def vlan_box_validate(self, entry_contents) -> None:
+        """
+        This method is called everytime the contents of the vlan number boxes are changed. It verifies input validity.
+
+        Parameters:
+        -----------
+            entry_contents - the text from the entry box.
+
+        Returns:
+        --------
+            bool - True if input is valid.
+        """
+        # Only allow digits to be input.
+        is_valid = False
+        if str.isdigit(entry_contents) or entry_contents == "":
+            # Set toggle.
+            is_valid = True
+
+            # Set flag indicating that the inteface has changed, and needs to be updated.
+            interface = self.interfaces_list[self.interface_drop_down.current()]
+            interface["config_has_changed"] = True
+
+        print("TUEUTUEUUUTUTYYEEUYEUEYEUYEUE")
+
+        return is_valid
+
+    def interface_submit_callback(self) -> None:
+        """
+        This method is called everytime the switch mode access checkbox is ticked.
+        """
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.interface_drop_down.current()
+        interface = self.interfaces_list[current_device_index]
+        print(interface["config_has_changed"])
+        # # Get device.
+        # device = self.devices[current_device_index]
+        # # Get connection of device.
+        # connection = self.ssh_connections[current_device_index]
+
+        # for interface in self.interfaces_list:
+        # # Create command list.
+        # command_list = ['config t']
+        # # Get current selected interface.
+        # interface = self.interface_selection.get().split(" ")[0]
+
+        # # Check if we are enable or disabling the box.
+        # if self.sw_mo_acc_check.get():
+        #     # Navigate into enterface.
+        #     command_list.append(f"interface {interface}")
+        #     # Set toggled command.
+        #     command_list.append("switchport mode access")
+        #     # Exit config mode.
+        #     command_list.append("end")
+        # else:
+        #     # Navigate into enterface.
+        #     command_list.append(f"interface {interface}")
+        #     # Set toggled command.
+        #     command_list.append("no switchport mode access")
+        #     # Exit config mode.
+        #     command_list.append("end")
+
+        # # Get privs.
+        # connection.enable()
+        # # Run commands.
+        # connection.send_config_set(command_list, exit_config_mode=False)
+        # Thread(target=self.refresh_device_info, args=(connection, device)).start()
+        # self.refresh_device_info(connection, device)
+
+    ###########################################################################
+    #
+    #                             VLAN
+    #                             FRAME
+    #
+    ###########################################################################
     def select_vlan(self, event) -> None:
         """
         This method is called everytime a new item is selected from the vlan dropdown menu.
@@ -656,6 +899,12 @@ class ConfigureUI:
         """
         pass
     
+    ###########################################################################
+    #
+    #                          UPLOAD CONFIG
+    #                             FRAME
+    #
+    ###########################################################################
     def upload_config_callback(self) -> None:
         """
         This method is called everytime the Upload Config button is pressed.
@@ -682,22 +931,8 @@ class ConfigureUI:
         # thread.join()
         self.upload_text_switch_commands(current_device_index, config)
 
-        # Update device dictionary after uploading config.
-        interfaces, vlans, config = get_config_info(connection)
-        # Store info in device dictionary.
-        device["interfaces"] = interfaces
-        device["vlans"] = vlans
-        device["config"] = config
-
-        # Update interfaces and vlan lists and dropdowns.
-        self.interfaces_list = device["interfaces"]
-        self.interface_drop_down["values"] = [val[1:] for val in self.interfaces_list]
-        self.vlans_list = device["vlans"]
-        self.vlan_drop_down["values"] = self.vlans_list
-
-        # Update config textbox component.
-        self.text_box.delete("1.0", tk.END)
-        self.text_box.insert(tk.END, config)
+        # Refresh device info.
+        self.refresh_device_info(connection, device)
 
     def upload_text_switch_commands(self, current_device_index, config) -> None:
         """
@@ -756,6 +991,37 @@ class ConfigureUI:
             except Exception as error:
                 self.logger.critical("A NetMiko issue occured while trying to run the config commands.", stack_info=True, exc_info=error)
 
+
+    def refresh_device_info(self, connection, device) -> None:
+        """
+        This method uses the given ssh connection to get device interface, vlan, anc config info and 
+        stores it in the given device dictionary.
+
+        Parameters:
+        -----------
+            connection - The ssh connection.
+            device - The array to store the data in.
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Update device dictionary after uploading config.
+        interfaces, vlans, config = get_config_info(connection)
+        # Store info in device dictionary.
+        device["interfaces"] = interfaces
+        device["vlans"] = vlans
+        device["config"] = config
+
+        # Update interfaces and vlan lists and dropdowns.
+        self.interfaces_list = device["interfaces"]
+        self.interface_drop_down["values"] = [interface["name"] + " " + interface["description"] for interface in self.interfaces_list]
+        self.vlans_list = device["vlans"]
+        self.vlan_drop_down["values"] = [vlan["vlan"] + " " + vlan["name"] for vlan in self.vlans_list]
+
+        # Update config textbox component.
+        self.text_box.delete("1.0", tk.END)
+        self.text_box.insert(tk.END, config)
         
     def update_window(self) -> None:
         """
@@ -810,7 +1076,7 @@ class ConfigureUI:
                     self.retrieving_devices = True
 
                 # Wait until devices list has been updated.
-                if (len(self.devices) > 0):
+                if len(self.devices) > 0:
                     # Update hostnames.
                     for i, addr in enumerate(self.ip_list):
                         # Split ip string.
@@ -832,15 +1098,64 @@ class ConfigureUI:
         if self.window_is_initialized:
             # Check if the user has selected a valid option from the dropdown, if they have enable config window frames.
             if self.drop_down.current() == -1 or self.ssh_connections[self.drop_down.current()] is None or not self.ssh_connections[self.drop_down.current()].is_alive():
-                # Disable window.
-                self.disable()
-                # Set toggle.
-                self.is_enabled = False
+                # Only run is window isn't already disabled.
+                if self.is_enabled:
+                    # Disable window.
+                    self.disable()
+                    # Set toggle.
+                    self.is_enabled = False
             elif not self.is_enabled:
                 # Enable window.
                 self.enable()
                 # Set toggle.
                 self.is_enabled = True
+
+            # Check if the user has selected a valid option from the interfaces dropdown menu.
+            if self.interface_drop_down.current() == -1:
+                # Disable interface frame items.
+                for child in self.interface_frame.winfo_children():
+                    # Only disable if the child isn't the dropdown.
+                    if child.widgetName != "ttk::combobox":
+                        # Disable element.
+                        child.configure(state="disable")
+            else:
+                # Enable interface frame items.
+                for child in self.interface_frame.winfo_children():
+                    # Only enable if the child isn't the dropdown.
+                    if child.widgetName != "ttk::combobox":
+                        # enable element.
+                        child.configure(state="normal")
+
+            # Check if the user has selected a valid option from the vlan dropdown menu.
+            if self.vlan_drop_down.current() == -1:
+                # Disable vlan frame items.
+                for child in self.vlan_frame.winfo_children():
+                    # Only disable if the child isn't the dropdown.
+                    if child.widgetName != "ttk::combobox":
+                        # Disable element.
+                        child.configure(state="disable")
+            else:
+                # Enable vlan frame items.
+                for child in self.vlan_frame.winfo_children():
+                    # Only enable if the child isn't the dropdown.
+                    if child.widgetName != "ttk::combobox":
+                        # enable element.
+                        child.configure(state="normal")
+
+            # If window is enabled and an interface has been selected, then update interface data with UI element values.
+            if self.is_enabled and self.interface_drop_down.current() != -1:
+                # Get current interface.
+                interface = self.interfaces_list[self.interface_drop_down.current()]
+
+                # Update interface dictionary.
+                interface["description"] = self.interface_description_box.get()
+                interface["shutdown"] = self.int_shutdown.get()
+                interface["switchport mode access"] = self.sw_mo_acc_check.get()
+                interface["switchport mode trunk"] = self.sw_mo_trunk_check.get()
+                interface["spanning-tree portfast"] = self.spantree_portfast_check.get()
+                interface["spanning-tree bpduguard enable"] = self.spantree_bpduguard_check.get()
+                interface["switchport access vlan"] = self.access_vlan_box.get()
+                interface["switchport trunk native vlan"] = self.trunk_vlan_box.get()
 
             # Call window event loop.
             self.window.update()
@@ -892,13 +1207,15 @@ class ConfigureUI:
 
         # Loop through interface frame.
         for child in self.interface_frame.winfo_children():
-            # Enable.
-            child.configure(state="normal")
+            if child.widgetName == "ttk::combobox":
+                # Enable.
+                child.configure(state="normal")
         
         # Loop through vlan frame.
         for child in self.vlan_frame.winfo_children():
-            # Enable.
-            child.configure(state="normal")
+            if child.widgetName == "ttk::combobox":
+                # Enable.
+                child.configure(state="normal")
 
         # Loop through upload frame.
         for child in self.upload_frame.winfo_children():
