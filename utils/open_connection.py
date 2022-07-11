@@ -287,6 +287,7 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
                         spanning_tree_portfast = False
                         spanning_tree_bpduguard = False
                         switch_access_vlan = -1
+                        switch_voice_vlan = -1
                         switch_trunk_vlan = -1
 
 
@@ -322,12 +323,17 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
                                 # Set toggle.
                                 switch_mode_trunk = True
 
-                            # Check for access and trunk vlan number.
+                            # Check for access, voicem, and trunk vlan number.
                             if "switchport access vlan" in data:
                                 # Remove all letters from data.
                                 data = data.translate(str.maketrans('', '', string.ascii_letters))
                                 # Remove trailing and leading whitespace and store.
                                 switch_access_vlan = data.strip()
+                            if "switchport voice vlan" in data:
+                                # Remove all letters from data.
+                                data = data.translate(str.maketrans('', '', string.ascii_letters))
+                                # Remove trailing and leading whitespace and store.
+                                switch_voice_vlan = data.strip()
                             if "switchport trunk native vlan" in data:
                                 # Remove all letters from data.
                                 data = data.translate(str.maketrans('', '', string.ascii_letters))
@@ -343,6 +349,7 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
                         interface["spanning-tree portfast"] = spanning_tree_portfast
                         interface["spanning-tree bpduguard enable"] = spanning_tree_bpduguard
                         interface["switchport access vlan"] = switch_access_vlan
+                        interface["switchport voice vlan"] = switch_voice_vlan
                         interface["switchport trunk native vlan"] = switch_trunk_vlan
                         interface["config_has_changed"] = False
 
