@@ -23,7 +23,7 @@ def setup_logger(level) -> logging.Logger:
     --------
         Logger - The logger object to interface with.
     """
-     # Create log output directory.
+    # Create log output directory.
     os.makedirs("logs", exist_ok=True)
 
     # Load config file.

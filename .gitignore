@@ -28,6 +28,7 @@ MANIFEST
 
 # Exclude text files and log files.
 *.log
+*.csv
 *.txt
 
 # PyInstaller

@@ -7,8 +7,7 @@ from threading import Thread
 from interface import configure_window
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.open_connection import (ssh_autodetect_info,
-                                   ssh_autodetect_switchlist_info)
+from utils.open_connection import (ssh_autodetect_info, ssh_autodetect_switchlist_info)
 from utils.ping import ping_of_death
 
 
@@ -33,6 +32,11 @@ class MainUI():
 
         # Open log file for displaying in console window.
         self.log_file = open("logs/latest.log", "r", encoding="utf-8")
+        # Create cache file.
+        if not os.path.exists("cache.cache"):
+            self.cache_file = open("cache.cache", "w+")
+        else:
+            self.cache_file = open("cache.cache", "r+")
 
     def initialize_window(self) -> None:
         """
@@ -120,6 +124,23 @@ class MainUI():
         # Populate console frame.
         self.list = tk.Listbox(master=console_frame, background="black", foreground="green", highlightcolor="green")
         self.list.grid(rowspan=10, columnspan=10, sticky=tk.NSEW)
+
+        # Attempt to get data from cache file for username and switch ips.
+        try:
+            lines = self.cache_file.readlines()
+            # Check length of file.
+            if len(lines) >= 2:
+                # Get total number of ips.
+                total_ips = int(lines.pop(0))
+                # Loop through and append each ip to textbox.
+                for i in range(total_ips):
+                    self.text_box.insert(tk.END, lines.pop(0))
+                
+                # Check length of cache again for username.
+                if len(lines) > 0:
+                    self.username_entry.insert(0, lines.pop(0))
+        except Exception:
+            self.logger.error("Unable to read cache file. It must be corrupted.")
 
     def read_configs_button_callback(self) -> None:
         """
@@ -214,9 +235,29 @@ class MainUI():
 
         # Set bool value.
         self.window_is_open = False
+
         # Close config window if open.
         if self.config_window.get_is_window_open():
             self.config_window.close_window()
+        
+        # Get contents of text box and username entry.
+        switch_ips = self.text_box.get('1.0', tk.END).splitlines()
+        switch_ips = list(filter(None, switch_ips))
+        # Clear file.
+        self.cache_file.truncate(0)
+        self.cache_file.seek(0)
+        # Store contents of switch list and username in cache file.
+        switch_ips.insert(0, str(len(switch_ips)))
+        switch_ips.append(self.username_entry.get())
+        for line in switch_ips:
+            # Only write if line isn't empty.
+            if len(line) > 0:
+                self.cache_file.write(line + "\n")
+
+        # Close files.
+        self.log_file.close()
+        self.cache_file.close()
+
         # Close window.
         self.window.destroy()
 
