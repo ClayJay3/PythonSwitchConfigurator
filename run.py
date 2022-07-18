@@ -2,6 +2,7 @@
 import logging
 import logging.config
 import time
+import os
 import rich
 import yaml
 
@@ -22,6 +23,9 @@ def setup_logger(level) -> logging.Logger:
     --------
         Logger - The logger object to interface with.
     """
+     # Create log output directory.
+    os.makedirs("logs", exist_ok=True)
+
     # Load config file.
     log_config = yaml.safe_load(open("logging_config.yaml", "r", encoding="utf-8").read())
     logging.config.dictConfig(log_config)

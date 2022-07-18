@@ -32,7 +32,7 @@ class MainUI():
         self.ip_list = []
 
         # Open log file for displaying in console window.
-        self.log_file = open("latest.log", "r", encoding="utf-8")
+        self.log_file = open("logs/latest.log", "r", encoding="utf-8")
 
     def initialize_window(self) -> None:
         """

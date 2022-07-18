@@ -62,7 +62,7 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=None) -> str:
         # Get the neighboring connected switches.
         #######################################################################
         # Run command.
-        output = ssh_connection.send_command("show cdp neighbors detail")
+        output = ssh_connection.send_command("show cdp neighbors detail", expect_string="#")
         # Parse cdp neighbors output
         neighbor_ips = []
         # Find starting index of IP address line.
@@ -180,10 +180,10 @@ def ssh(device) -> netmiko.ssh_dispatcher:
         logger.error(f"Something happened while trying to communicate with device {device['host']}")
 
     # Configure terminal properties if connection is alive.
-    if connection.is_alive():
+    if connection is not None and connection.is_alive():
         # Tell switch to continuously print output.
-        connection.send_command("terminal length 0")
-        connection.send_command("set length 0")
+        connection.send_command("terminal length 0", expect_string="#")
+        connection.send_command("set length 0", expect_string="#")
         # Get priviledged terminal.
         connection.enable()
 
@@ -227,7 +227,7 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
             # Parse and store config.
             ###########################################################################
             # Get config output.
-            config = connection.send_command("show run")
+            config = connection.send_command("show run", expect_string="#")
             # Split config text into lines and remove first three.
             config = config.split("\n")[3:]
             # Reassemble.
@@ -241,7 +241,7 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
             # Parse and store interfaces output.
             ###########################################################################
             # Get interface output.
-            interface_output = connection.send_command("show interface status")
+            interface_output = connection.send_command("show interface status", expect_string="#")
 
             # Parse interface output.
             output_split = interface_output.splitlines()[2:]
@@ -286,9 +286,9 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
                         switch_mode_trunk = False
                         spanning_tree_portfast = False
                         spanning_tree_bpduguard = False
-                        switch_access_vlan = -1
-                        switch_voice_vlan = -1
-                        switch_trunk_vlan = -1
+                        switch_access_vlan = 0
+                        switch_voice_vlan = 0
+                        switch_trunk_vlan = 0
 
 
                         # Loop through each config line for the interface and get data.
@@ -357,17 +357,19 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
             # Parse and store vlan output.
             ###########################################################################
             # Add interface and vlan info to the switch device dictionary.
-            vlan_output = connection.send_command("show vlan brief")
+            vlan_output = connection.send_command("show vlan brief", expect_string="#")
             output_split = vlan_output.splitlines()[3:]
             # Loop through each line and get relavent data.
             for line in output_split:
-                # Split line into words at each whitespace.
-                line = re.split(" +", line)
-                # Get data.
-                vlan = line[0]
-                name = line[1]
-                # Append to vlan array.
-                vlans.append({"vlan" : vlan, "name" : name})
+                # Check line validity.
+                if len(line) > 2:
+                    # Split line into words at each whitespace.
+                    line = re.split(" +", line)
+                    # Get data.
+                    vlan = line[0]
+                    name = line[1]
+                    # Append to vlan array.
+                    vlans.append({"vlan" : vlan, "name" : name})
     except Exception as error:
         # Print log.
         logger.error("Something goofy happened while update switch configuration info: ", exc_info=error, stack_info=True)
