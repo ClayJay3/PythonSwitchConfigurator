@@ -174,7 +174,7 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
     # Create instance variables.
     interfaces = []
     vlans = []
-    config = "Unable to pull config from device. Check console output for errors."
+    config = "Unable to pull config from device. Check console output for errors. Try refreshing device info."
     logger = logging.getLogger(__name__)
 
     # This one gets complicated, just gonna try-catch it all.

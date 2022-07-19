@@ -164,16 +164,22 @@ class MainUI():
             text = self.text_box.get('1.0', tk.END).splitlines()
             # Clear existing ips from list.
             self.ip_list.clear()
-            # Ping each switch listed in the textbox to get a list containing their status.
-            Thread(target=ping_of_death, args=(text, self.ip_list,)).start()
+
+            # Check if the window has alread been opened and is trying to start.
+            if self.config_window.get_is_window_open() and not self.config_window.get_is_window_initialized():
+                # Print log.
+                self.logger.warning("Another instance of the config window has already been started in the background.")
+            else:
+                # Ping each switch listed in the textbox to get a list containing their status.
+                Thread(target=ping_of_death, args=(text, self.ip_list,)).start()
+                
+                # Check if a configuration window has already been opened.
+                if self.config_window.get_is_window_open() and self.config_window.get_is_window_initialized():
+                    # Close existing window.
+                    self.config_window.close_window()
             
-            # Check if a configuration window has already been opened.
-            if self.config_window.get_is_window_open() and self.config_window.get_is_window_initialized():
-                # Close existing window.
-                self.config_window.close_window()
-        
-            # Open configure window and give it the switch ip list, username, and password.
-            self.config_window.run(self.ip_list, self.username_entry.get(), self.password_entry.get())
+                # Open configure window and give it the switch ip list, username, and password.
+                self.config_window.run(self.ip_list, self.username_entry.get(), self.password_entry.get())
         else:
             # Print log info.
             self.logger.warning("You must enter username and password credentials. Otherwise, I can't log into the switch!")

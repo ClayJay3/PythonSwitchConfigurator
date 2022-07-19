@@ -156,11 +156,13 @@ class ConfigureUI:
         self.upload_frame.columnconfigure(0, weight=1)
 
         # Populate selector frame.
-        write_button = tk.Button(master=self.selector_frame,  text="WRITE", foreground="black", background="white", command=self.write_config_callback)
+        write_button = tk.Button(master=self.selector_frame,  text="REFRESH", foreground="black", background="white", command=self.refresh_config_callback)
         write_button.grid(row=0, rowspan=10, column=0, columnspan=1, sticky=tk.NSEW)
+        write_button = tk.Button(master=self.selector_frame,  text="WRITE", foreground="black", background="white", command=self.write_config_callback)
+        write_button.grid(row=0, rowspan=10, column=1, columnspan=1, sticky=tk.NSEW)
         self.drop_down = ttk.Combobox(master=self.selector_frame, textvariable=self.switch_selection, values=self.ip_list)
         self.drop_down.bind('<<ComboboxSelected>>', self.drop_down_callback)        # Set callback binding for combobox cause it's odd.
-        self.drop_down.grid(row=0, rowspan=10, column=1, columnspan=9, sticky=tk.NSEW)
+        self.drop_down.grid(row=0, rowspan=10, column=2, columnspan=9, sticky=tk.NSEW)
 
         # Populate quick command frame.
         int_stat_button = tk.Button(master=self.command_button_frame,  text="Interface Status", foreground="black", background="white", command=self.interface_status_callback)
@@ -317,7 +319,29 @@ class ConfigureUI:
                     # Disable element.
                     child.configure(state="disable")
 
-    def write_config_callback(self):
+    def refresh_config_callback(self) -> None:
+        """
+        This method is called everytime the REFRESH button is pressed.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Refresh info.
+        self.refresh_device_info(connection, device)
+
+    def write_config_callback(self) -> None:
         """
         This method is called everytime the WRITE button is pressed.
 
