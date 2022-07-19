@@ -11,6 +11,8 @@ rich = "*"
 pyyaml = "*"
 pysnmp = "*"
 numpy = "*"
+setuptools = "*"
+gevent = "*"
 
 [dev-packages]
 

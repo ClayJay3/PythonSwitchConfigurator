@@ -132,8 +132,8 @@ class ConfigureUI:
         # Create frame for selecting which switch to connect to.
         self.selector_frame = tk.Frame(master=self.window, relief=tk.GROOVE, borderwidth=3)
         self.selector_frame.grid(row=0, column=0, columnspan=5, sticky=tk.NSEW)
-        self.selector_frame.rowconfigure(0, weight=1)
-        self.selector_frame.columnconfigure(0, weight=1)
+        self.selector_frame.rowconfigure(self.grid_size, weight=1)
+        self.selector_frame.columnconfigure(self.grid_size, weight=1)
         # Create frame for the quick command buttons.
         self.command_button_frame = tk.LabelFrame(master=self.window, text="Quick Commands", relief=tk.GROOVE, borderwidth=3)
         self.command_button_frame.grid(row=0, column=5, columnspan=5, sticky=tk.NSEW)
@@ -156,11 +156,11 @@ class ConfigureUI:
         self.upload_frame.columnconfigure(0, weight=1)
 
         # Populate selector frame.
+        write_button = tk.Button(master=self.selector_frame,  text="WRITE", foreground="black", background="white", command=self.write_config_callback)
+        write_button.grid(row=0, rowspan=10, column=0, columnspan=1, sticky=tk.NSEW)
         self.drop_down = ttk.Combobox(master=self.selector_frame, textvariable=self.switch_selection, values=self.ip_list)
         self.drop_down.bind('<<ComboboxSelected>>', self.drop_down_callback)        # Set callback binding for combobox cause it's odd.
-        self.drop_down.grid(row=0, column=0, columnspan=7, sticky=tk.NSEW)
-        write_button = tk.Button(master=self.selector_frame,  text="WRITE", foreground="black", background="white", command=self.write_config_callback)
-        write_button.grid(row=0, column=7, columnspan=3, sticky=tk.NSEW)
+        self.drop_down.grid(row=0, rowspan=10, column=1, columnspan=9, sticky=tk.NSEW)
 
         # Populate quick command frame.
         int_stat_button = tk.Button(master=self.command_button_frame,  text="Interface Status", foreground="black", background="white", command=self.interface_status_callback)
@@ -188,16 +188,16 @@ class ConfigureUI:
         desc_validate = self.interface_frame.register(self.description_box_validate)
         vlan_validate = self.interface_frame.register(self.vlan_box_validate)
         int_select_label = tk.Label(master=self.interface_frame, text="Select Interface:")
-        int_select_label.grid(row=0, rowspan=1, column=0, columnspan=1, sticky=tk.SW)
+        int_select_label.grid(row=0, rowspan=1, column=0, columnspan=1, sticky=tk.NSEW)
         self.interface_drop_down = ttk.Combobox(master=self.interface_frame, textvariable=self.interface_selection, values=self.interfaces_list)
         self.interface_drop_down.bind('<<ComboboxSelected>>', self.select_interface)        # Set callback binding for combobox cause it's odd.
-        self.interface_drop_down.grid(row=0, rowspan=1, column=1, columnspan=6, sticky=tk.SW)
+        self.interface_drop_down.grid(row=0, rowspan=1, column=1, columnspan=7, sticky=tk.NSEW)
         port_channel_button = tk.Button(master=self.interface_frame, text="Create Port Channel", foreground="black", background="white", command=self.port_channel_callback)
-        port_channel_button.grid(row=0, column=8, columnspan=2, sticky=tk.SW)
+        port_channel_button.grid(row=0, column=8, columnspan=2, sticky=tk.EW)
         int_range_select_label = tk.Label(master=self.interface_frame, text="Range:")
-        int_range_select_label.grid(row=1, rowspan=1, column=0, columnspan=1, sticky=tk.NW)
+        int_range_select_label.grid(row=1, rowspan=1, column=0, columnspan=1, sticky=tk.EW)
         self.interface_range_drop_down = ttk.Combobox(master=self.interface_frame, textvariable=self.interface_range_selection, values=self.interfaces_list)
-        self.interface_range_drop_down.grid(row=1, rowspan=1, column=1, columnspan=6, sticky=tk.NW)
+        self.interface_range_drop_down.grid(row=1, rowspan=1, column=1, columnspan=7, sticky=tk.EW)
         description_label = tk.Label(master=self.interface_frame, text="Description: ")
         description_label.grid(row=2, rowspan=1, column=0, columnspan=2, sticky=tk.W)
         self.interface_description_box = tk.Entry(master=self.interface_frame, width=10, validate="key", validatecommand=(desc_validate, '%P'))
@@ -994,6 +994,15 @@ class ConfigureUI:
                         command_list.append("spanning-tree bpduguard enable")
                     else:
                         command_list.append("no spanning-tree bpduguard enable")
+                    
+                    # Set phone policies.
+                    """
+                    trust device cisco-phone
+                    no macro auto processing
+                    auto qos voip cisco-phone
+                    service-policy input AutoQos-4.0-CiscoPhone-Input-Policy
+                    service-policy output AutoQos-4.0-Output-Policy
+                    """
                 elif interface["switchport mode trunk"]:
                     # Navigate into enterface.
                     command_list.append(f"interface {interface['name']}")

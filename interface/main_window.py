@@ -138,7 +138,7 @@ class MainUI():
                 
                 # Check length of cache again for username.
                 if len(lines) > 0:
-                    self.username_entry.insert(0, lines.pop(0))
+                    self.username_entry.insert(0, lines.pop(0).strip())
         except Exception:
             self.logger.error("Unable to read cache file. It must be corrupted.")
 

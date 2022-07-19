@@ -1,6 +1,7 @@
 # Import required packages.
 import logging
 import logging.config
+import utils.logging_handlers
 import time
 import os
 import rich

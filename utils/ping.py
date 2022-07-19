@@ -48,7 +48,7 @@ def ping(ip_or_hostname) -> Tuple[bool, str, str]:
                 # Set reachable var.
                 reachable = False
                 # Print host id down.
-                logger.error(f"Unable to talk to {ip_or_hostname}")
+                logger.warning(f"Unable to talk to {ip_or_hostname}")
         else:
             # Ping the machine.
             response = subprocess.Popen("ping -n 1 " + ip_or_hostname, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
@@ -58,13 +58,15 @@ def ping(ip_or_hostname) -> Tuple[bool, str, str]:
             if response == 0:
                 # Set reachable var.
                 reachable = True
-                # Try to resolve both the IP and hostname.
-                ip_addr = socket.gethostbyname(ip_or_hostname)
                 # Try to resolve hostname, must catch this because it throws errors if it fails.
                 try:
+                    # Try to resolve both the IP and hostname.
+                    ip_addr = socket.gethostbyname(ip_or_hostname)
                     hostname, _, _ = socket.gethostbyaddr(ip_or_hostname)
-                except socket.herror:
+                    hostname = "asdf"
+                except Exception:
                     # Set hostname equal to ip address.
+                    ip_addr = ip_or_hostname
                     hostname = ip_addr
                 # Print host is up.
                 logger.info(f"Ping of {ip_addr}: Host {hostname} is up!")
@@ -72,7 +74,7 @@ def ping(ip_or_hostname) -> Tuple[bool, str, str]:
                 # Set reachable var.
                 reachable = False
                 # Print host id down.
-                logger.error(f"Unable to talk to {ip_or_hostname}")
+                logger.warning(f"Unable to talk to {ip_or_hostname}")
 
         return reachable, ip_addr, hostname
     except Exception as exception:

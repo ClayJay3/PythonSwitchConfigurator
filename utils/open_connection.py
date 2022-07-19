@@ -57,45 +57,6 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=None) -> str:
             remote_device["ip_address"] = ip_addr
         except ValueError:
             logger.error(f"Unable to find switch prompt for {ip_addr}")
-
-        #######################################################################
-        # Get the neighboring connected switches.
-        #######################################################################
-        # Run command.
-        output = ssh_connection.send_command("show cdp neighbors detail", expect_string="#")
-        # Parse cdp neighbors output
-        neighbor_ips = []
-        # Find starting index of IP address line.
-        index = 0
-        while index != -1:
-            # Get starting index of IP.
-            index = output.find("IP")
-            # Step forward until we hit a newline char.
-            neighbor_ip = ""
-            counter = 0
-            for char in output[index:]:
-                # Check if current character is a newline.
-                if (char != "\n"):
-                    # Append char to new string.
-                    neighbor_ip = neighbor_ip + char
-                    # Increment counter.
-                    counter += 1
-                else:
-                    # Stop looping once we reach the end of the ip.
-                    break
-
-            # Split neighbor ip string by space.
-            neighbor_ips.append(neighbor_ip.split(sep=" ")[-1])
-            # Cutoff the string we already searched.
-            output = output[index + counter:]
-        
-        # Remove duplicates from neighbor list and add to dictionary.
-        neighbor_ips = [addr for addr in neighbor_ips if len(addr) >= 8]
-        remote_device["neighbors"] = list(set(neighbor_ips))
-
-        #######################################################################
-        # Get the model and firmware version info.
-        #######################################################################
     except NetmikoAuthenticationException:
         # Print log info.
         logger.error(f"Unable to authenticate with device {ip_addr}")
@@ -222,12 +183,14 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
         if connection is not None and connection.is_alive():
             # Elevate privs and prevent the terminal from pausing during long command outputs.
             connection.enable()
+            # Find prompt for connection.
+            prompt = connection.find_prompt()
 
             ###########################################################################
             # Parse and store config.
             ###########################################################################
             # Get config output.
-            config = connection.send_command("show run", expect_string="#")
+            config = connection.send_command("show run", expect_string=prompt)
             # Split config text into lines and remove first three.
             config = config.split("\n")[3:]
             # Reassemble.
@@ -241,7 +204,7 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
             # Parse and store interfaces output.
             ###########################################################################
             # Get interface output.
-            interface_output = connection.send_command("show interface status", expect_string="#")
+            interface_output = connection.send_command("show interface status", expect_string=prompt)
 
             # Parse interface output.
             output_split = interface_output.splitlines()[2:]
@@ -279,7 +242,7 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
                     block_name = name_data[:2] + name_data.translate(str.maketrans('', '', string.ascii_letters + "-"))
                     # Check if names are equal.
                     if interface["name"] == block_name:
-                        #### Add relevant info to the interface using the interface_data list.
+                        # Add relevant info to the interface using the interface_data list.
                         description = ""
                         shutdown = False
                         switch_mode_access = False
@@ -357,7 +320,7 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
             # Parse and store vlan output.
             ###########################################################################
             # Add interface and vlan info to the switch device dictionary.
-            vlan_output = connection.send_command("show vlan brief", expect_string="#")
+            vlan_output = connection.send_command("show vlan brief", expect_string=prompt)
             output_split = vlan_output.splitlines()[3:]
             # Loop through each line and get relavent data.
             for line in output_split:

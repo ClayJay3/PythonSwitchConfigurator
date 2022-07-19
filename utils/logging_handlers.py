@@ -2,7 +2,6 @@ from logging.handlers import WatchedFileHandler
 from datetime import datetime
 import os
 
-
 class CsvHandler(WatchedFileHandler):
     """
     This class serves as a csv controller for the logging module.
