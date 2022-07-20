@@ -338,6 +338,9 @@ class ConfigureUI:
         # Get connection of device.
         connection = self.ssh_connections[current_device_index]
 
+        # Clear interface and vlan selection.
+        self.interface_selection.set("No interface is selected")
+        self.vlan_selection.set("No vlan is selected")
         # Refresh info.
         self.refresh_device_info(connection, device)
 
@@ -1018,15 +1021,6 @@ class ConfigureUI:
                         command_list.append("spanning-tree bpduguard enable")
                     else:
                         command_list.append("no spanning-tree bpduguard enable")
-                    
-                    # Set phone policies.
-                    """
-                    trust device cisco-phone
-                    no macro auto processing
-                    auto qos voip cisco-phone
-                    service-policy input AutoQos-4.0-CiscoPhone-Input-Policy
-                    service-policy output AutoQos-4.0-Output-Policy
-                    """
                 elif interface["switchport mode trunk"]:
                     # Navigate into enterface.
                     command_list.append(f"interface {interface['name']}")
@@ -1268,7 +1262,7 @@ class ConfigureUI:
                     self.retrieving_devices = True
 
                 # Wait until devices list has been updated.
-                if len(self.devices) > 0:
+                if len(self.devices) == len(self.ip_list):
                     # Update hostnames.
                     for i, addr in enumerate(self.ip_list):
                         # Split ip string.
@@ -1285,6 +1279,12 @@ class ConfigureUI:
 
                     # Initialize window components.
                     self.initialize_window()
+
+                if len(self.devices) >= 1 and self.devices[0] is None:
+                    # Close window.
+                    self.close_window()
+                    # Show error message if device auth failed.
+                    messagebox.showwarning(message="Can't authenticate with the given credentials. Please enter the correct username and password.")
 
         # Only update window components if window is initialized.
         if self.window_is_initialized:

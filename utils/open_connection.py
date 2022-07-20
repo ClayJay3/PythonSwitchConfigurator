@@ -5,6 +5,7 @@ from functools import partial
 from multiprocessing.pool import ThreadPool
 import string
 import time
+from tkinter import messagebox
 import netmiko
 from netmiko.exceptions import NetmikoAuthenticationException, NetmikoTimeoutException
 from netmiko.ssh_dispatcher import ConnectHandler
@@ -97,17 +98,29 @@ def ssh_autodetect_switchlist_info(username, password, ip_list, device_list) -> 
 
     # Check if the ip list actually contains something.
     if len(ip_list) > 0:
-        # Loop through each line and try to ping it in a new thread.
-        devices = thread_pool.map_async(partial(ssh_autodetect_info, username, password), ip_list)
+        # Try to auth with one switch first.
+        first_switch = ssh_autodetect_info(username, password, ip_list.pop(0))
+        # Check if auth was successful.
+        if first_switch["host"] != "Unable_to_Authenticate":
+            # Append first device to device list.
+            device_list.append(first_switch)
 
-        # Wait for pool threads to finish.
-        thread_pool.close()
-        thread_pool.join()
+            # Loop through each line and try to ping it in a new thread.
+            devices = thread_pool.map_async(partial(ssh_autodetect_info, username, password), ip_list)
+            # Wait for pool threads to finish.
+            thread_pool.close()
+            thread_pool.join()
 
-        # Get results from pool.
-        for switch in devices.get():
-            device_list.append(switch)
+            # Get results from pool.
+            for switch in devices.get():
+                device_list.append(switch)
+        else:
+            # Print log.
+            logger.warning("Can't authenticate with the given credentials. Please enter the corrent username and password.")
+            # Append none to device list.
+            device_list.append(None)
     else:
+        # Print log.
         logger.warning("No IPs were givin. Can't open any SSH sessions to autodetect.")
 
 def ssh(device) -> netmiko.ssh_dispatcher:
@@ -335,6 +348,6 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
                     vlans.append({"vlan" : vlan, "name" : name})
     except Exception as error:
         # Print log.
-        logger.error("Something goofy happened while update switch configuration info: ", exc_info=error, stack_info=True)
+        logger.error("Something goofy happened while updating switch configuration info: ", exc_info=error, stack_info=True)
 
     return interfaces, vlans, config
