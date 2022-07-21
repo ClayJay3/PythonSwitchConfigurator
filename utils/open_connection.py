@@ -341,11 +341,65 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
                 if len(line) > 2:
                     # Split line into words at each whitespace.
                     line = re.split(" +", line)
-                    # Get data.
-                    vlan = line[0]
-                    name = line[1]
-                    # Append to vlan array.
-                    vlans.append({"vlan" : vlan, "name" : name})
+                    # Check if vlan is active.
+                    if "active" in line[2]:
+                        # Get data.
+                        vlan = line[0]
+                        name = line[1]
+                        # Append to vlan array.
+                        vlans.append({"vlan" : vlan, "name" : name})
+
+            ## Get individual interface data.
+            # Split up config by !.
+            config_blocks = re.split("!+", config)
+
+            vlan_blocks = []
+            # Loop through the split up config blocks and only keep the interface ones.          
+            for block in config_blocks:
+                # Check if the block contains the word interface.
+                if "interface Vlan" in block:
+                    # split block up by new lines and remove first line. (it's empty)
+                    block = block.splitlines()[1:]
+                    # Append to list.
+                    vlan_blocks.append(block)
+            
+            # Loop through the vlans and blocks and match them by name.
+            for vlan in vlans:
+                for vlan_data in vlan_blocks:
+                    # Get vlan name.
+                    name_data = re.split(" +", vlan_data[0])[1]
+                    block_name = name_data.translate(str.maketrans('', '', string.ascii_letters + "-"))
+                    # Check if names are equal.
+                    if vlan["vlan"] == block_name:
+                        # Add relevant info to the vlan using the vlan_data list.
+                        description = ""
+                        ip_addr = ""
+                        shutdown = False
+
+                        # Loop through each config line for the vlan and get data.
+                        for data in vlan_data:
+                            # Get Description info.
+                            if "description" in data and description == "":
+                                # Remove unneeded keyword from data.
+                                data = data.replace("description", "")
+                                # Remove trailing and leading spaces and set description equal to new data.
+                                description = data.strip()
+                            # Get ip address info.
+                            if not "no ip address" in data and "ip address" in data:
+                                # Remove uneeded keyword from data.
+                                data = data.replace("ip address", "")
+                                # Remove trailing and leading spaces and set new data.
+                                ip_addr = data.strip()
+                            # Get vlan shutdown info.
+                            if "shutdown" in data and not "no shutdown" in data:
+                                # Set toggle.
+                                shutdown = True
+                            
+                        # Add description to vlan dictionary.
+                        vlan["description"] = description
+                        vlan["ip address"] = ip_addr
+                        vlan["shutdown"] = shutdown
+                        vlan["config_has_changed"] = False
     except Exception as error:
         # Print log.
         logger.error("Something goofy happened while updating switch configuration info: ", exc_info=error, stack_info=True)

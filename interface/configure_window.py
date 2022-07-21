@@ -56,6 +56,7 @@ class ConfigureUI:
         self.spantree_portfast_check = None
         self.spantree_bpduguard_check = None
         self.sw_mo_trunk_check = None
+        self.vlan_shutdown_check = None
         self.access_vlan_box = None
         self.voice_vlan_box = None
         self.spantree_portfast = None
@@ -64,6 +65,8 @@ class ConfigureUI:
         self.vlans_list = []
         self.vlan_selection = None
         self.vlan_drop_down = None
+        self.vlan_description_box = None
+        self.vlan_ipaddr_box = None
         self.text_box = None
 
         # This serves as a temp var used by many things, anytime a popup window that is destroyable is made, it's stored here.
@@ -121,6 +124,7 @@ class ConfigureUI:
         self.spantree_portfast_check = tk.BooleanVar(self.window)
         self.spantree_bpduguard_check = tk.BooleanVar(self.window)
         self.sw_mo_trunk_check = tk.BooleanVar(self.window)
+        self.vlan_shutdown_check = tk.BooleanVar(self.window)
 
         # Setup window grid layout.
         self.window.rowconfigure(self.grid_size, weight=1, minsize=60)
@@ -137,21 +141,21 @@ class ConfigureUI:
         # Create frame for the quick command buttons.
         self.command_button_frame = tk.LabelFrame(master=self.window, text="Quick Commands", relief=tk.GROOVE, borderwidth=3)
         self.command_button_frame.grid(row=0, column=5, columnspan=5, sticky=tk.NSEW)
-        self.command_button_frame.rowconfigure(0, weight=1)
-        self.command_button_frame.columnconfigure(self.grid_size, weight=1)
+        self.command_button_frame.rowconfigure([0, 1], weight=1)
+        self.command_button_frame.columnconfigure([0, 1, 2, 3, 4], weight=1)
         # Create frame for interface configuration.
         self.interface_frame = tk.LabelFrame(master=self.window, text="Interface Config", relief=tk.GROOVE, borderwidth=3)
-        self.interface_frame.grid(row=1, rowspan=9, column=0, columnspan=4, sticky=tk.NSEW)
+        self.interface_frame.grid(row=1, rowspan=6, column=0, columnspan=4, sticky=tk.NSEW)
         self.interface_frame.rowconfigure(self.grid_size, weight=1)
         self.interface_frame.columnconfigure(self.grid_size, weight=1)
         # Create frame for vlan configuration.
         self.vlan_frame = tk.LabelFrame(master=self.window, text="VLAN Config", relief=tk.GROOVE, borderwidth=3)
-        self.vlan_frame.grid(row=1, rowspan=9, column=4, columnspan=3, sticky=tk.NSEW)
+        self.vlan_frame.grid(row=7, rowspan=3, column=0, columnspan=4, sticky=tk.NSEW)
         self.vlan_frame.rowconfigure(self.grid_size, weight=1)
         self.vlan_frame.columnconfigure(self.grid_size, weight=1)
         # Create frame for uploading configuration.
         self.upload_frame = tk.LabelFrame(master=self.window, text="Upload Config", relief=tk.GROOVE, borderwidth=3)
-        self.upload_frame.grid(row=1, rowspan=9, column=7, columnspan=3, sticky=tk.NSEW)
+        self.upload_frame.grid(row=1, rowspan=9, column=4, columnspan=6, sticky=tk.NSEW)
         self.upload_frame.rowconfigure(0, weight=1)
         self.upload_frame.columnconfigure(0, weight=1)
 
@@ -176,18 +180,18 @@ class ConfigureUI:
         clr_int_err_button = tk.Button(master=self.command_button_frame,  text="Clear Interface Errors", foreground="black", background="white", command=self.clear_interface_errors_callback)
         clr_int_err_button.grid(row=0, column=4, columnspan=1, sticky=tk.NSEW)
         cdp_neighbors_button = tk.Button(master=self.command_button_frame,  text="CDP Neighbors", foreground="black", background="white", command=self.cdp_neighbors_callback)
-        cdp_neighbors_button.grid(row=0, column=5, columnspan=1, sticky=tk.NSEW)
+        cdp_neighbors_button.grid(row=1, column=0, columnspan=1, sticky=tk.NSEW)
         etherchannel_button = tk.Button(master=self.command_button_frame,  text="Etherchannel Detail", foreground="black", background="white", command=self.etherchannel_detail_callback)
-        etherchannel_button.grid(row=0, column=6, columnspan=1, sticky=tk.NSEW)
+        etherchannel_button.grid(row=1, column=1, columnspan=1, sticky=tk.NSEW)
+        macaddr_button = tk.Button(master=self.command_button_frame, text="Mac Address-Table", foreground="black", background="white", command=self.mac_address_callback)
+        macaddr_button.grid(row=1, column=2, columnspan=1, sticky=tk.NSEW)
         tranceiver_button = tk.Button(master=self.command_button_frame,  text="Transceiver Detail", foreground="black", background="white", command=self.transceiver_detail_callback)
-        tranceiver_button.grid(row=0, column=7, columnspan=1, sticky=tk.NSEW)
+        tranceiver_button.grid(row=1, column=3, columnspan=1, sticky=tk.NSEW)
         console_button = tk.Button(master=self.command_button_frame,  text="Console", foreground="black", background="white", command=self.console_callback)
-        console_button.grid(row=0, column=8, columnspan=1, sticky=tk.NSEW)
-
-        # Add show mac addres-table?
+        console_button.grid(row=1, column=4, columnspan=1, sticky=tk.NSEW)
 
         # Populate interface configuration frame.
-        desc_validate = self.interface_frame.register(self.description_box_validate)
+        desc_validate = self.interface_frame.register(self.vlan_description_box_validate)
         vlan_validate = self.interface_frame.register(self.vlan_box_validate)
         int_select_label = tk.Label(master=self.interface_frame, text="Select Interface:")
         int_select_label.grid(row=0, rowspan=1, column=0, columnspan=1, sticky=tk.NSEW)
@@ -230,11 +234,25 @@ class ConfigureUI:
         set_interface_button.grid(row=10, column=0, columnspan=10, sticky=tk.NSEW)
 
         # Populate vlan configuration frame.
+        vlan_desc_validate = self.vlan_frame.register(self.description_box_validate)
+        ip_validate = self.vlan_frame.register(self.vlan_ip_address_validate)
         vlan_select_label = tk.Label(master=self.vlan_frame, text="Select VLAN:")
         vlan_select_label.grid(row=0, rowspan=1, column=0, columnspan=2, sticky=tk.EW)
         self.vlan_drop_down = ttk.Combobox(master=self.vlan_frame, textvariable=self.vlan_selection, values=self.vlans_list)
         self.vlan_drop_down.bind('<<ComboboxSelected>>', self.select_vlan)        # Set callback binding for combobox cause it's odd.
         self.vlan_drop_down.grid(row=0, rowspan=1, column=2, columnspan=8, sticky=tk.EW)
+        vlan_description_label = tk.Label(master=self.vlan_frame, text="Description: ")
+        vlan_description_label.grid(row=1, rowspan=1, column=0, columnspan=2, sticky=tk.W)
+        self.vlan_description_box = tk.Entry(master=self.vlan_frame, width=10, validate="key", validatecommand=(vlan_desc_validate, '%P'))
+        self.vlan_description_box.grid(row=1, column=2, columnspan=8, sticky=tk.EW)
+        ipaddr_label = tk.Label(master=self.vlan_frame, text="ip address ")
+        ipaddr_label.grid(row=3, rowspan=1, column=0, columnspan=2, sticky=tk.W)
+        self.vlan_ipaddr_box = tk.Entry(master=self.vlan_frame, width=10, validate="key", validatecommand=(ip_validate, "%P"))
+        self.vlan_ipaddr_box.grid(row=3, column=2, columnspan=8, sticky=tk.EW)
+        vlan_shutdown_button = tk.Checkbutton(master=self.vlan_frame, text='shutdown', variable=self.vlan_shutdown_check, onvalue=True, offvalue=False, command=self.vlan_shutdown_callback)
+        vlan_shutdown_button.grid(row=4, rowspan=1, column=0, columnspan=10, sticky=tk.W)
+        set_vlan_button = tk.Button(master=self.vlan_frame, text="Set VLAN", foreground="black", background="white", command=self.vlan_submit_callback)
+        set_vlan_button.grid(row=10, column=0, columnspan=10, sticky=tk.NSEW)
 
         # Populate upload config frame.
         self.text_box = tk.Text(master=self.upload_frame, width=10, height=5)
@@ -618,6 +636,44 @@ class ConfigureUI:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
 
+    def mac_address_callback(self) -> None:
+        """
+        This method is called everytime the Mac Address-Table button is pressed.
+        
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Open a window asking for the user to select an interface from the dropdown menu.
+            self.popup = ListPopup()
+            selection = self.popup.open([interface["name"] for interface in self.interfaces_list], prompt="Select an interface to display mac address table for:")
+            # Check if selection is valid.
+            if selection is not None:
+                # Run command.
+                output = connection.send_command(f"show mac address-table | include {selection}")
+                
+                # Print log.
+                self.logger.info(f"Sending button command 'show mac address-table | {selection}' to {device['host']}")
+
+                # Open a new popup window with the output text.
+                text_popup(output, x_grid_size=10, y_grid_size=3)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
     def transceiver_detail_callback(self) -> None:
         """
         This method is called everytime the Transceiver Detail button is pressed.
@@ -959,7 +1015,7 @@ class ConfigureUI:
 
     def interface_submit_callback(self) -> None:
         """
-        This method is called everytime the switch mode access checkbox is ticked.
+        This method is called everytime the interface submit button is pressed.
         """
         # Get the current index of the device selected from the dropdown menu.
         current_device_index = self.drop_down.current()
@@ -1086,7 +1142,133 @@ class ConfigureUI:
         --------
             Nothing
         """
-        pass
+        # Get the current index of the device selected from the dropdown menu.
+        current_interface_index = self.vlan_drop_down.current()
+        # Get current interface.
+        vlan_interface = self.vlans_list[current_interface_index]
+
+        # Enable checkboxes and entry boxes.
+        for child in self.vlan_frame.winfo_children():
+            # Enable element.
+            child.configure(state="normal")
+
+        # Vlans are tricky.
+        try:
+            # Update vlan description box.
+            self.vlan_description_box.delete(0, tk.END)
+            self.vlan_description_box.insert(0, vlan_interface["description"])
+            # Update vlan ip addr box.
+            self.vlan_ipaddr_box.delete(0, tk.END)
+            self.vlan_ipaddr_box.insert(0, vlan_interface["ip address"])
+            # Update vlan shutdown checkbox.
+            self.vlan_shutdown_check.set(vlan_interface["shutdown"])
+        except KeyError:
+            self.logger.error(f"Unable to get data for vlan {vlan_interface['name']}. It might not be completely configured, check the switch config.")
+            messagebox.showerror(title="Failed", message=f"Unable to get data for vlan {vlan_interface['name']}. It might not be completely configured, check the switch config.", parent=self.window)
+
+    def vlan_shutdown_callback(self) -> None:
+        """
+        This method is called everytime the vlan shutdown checkbox is ticked.
+        """
+        # Get current interface.
+        vlan_interface = self.interfaces_list[self.interface_drop_down.current()]
+        # Update interface dictionary.
+        vlan_interface["config_has_changed"] = True
+
+    def vlan_description_box_validate(self, entry_contents) -> None:
+        """
+        This method is called everytime the contents of the description box are changed. It verifies input validity.
+
+        Parameters:
+        -----------
+            entry_contents - the text from the entry box.
+
+        Returns:
+        --------
+            bool - True if input is valid.
+        """
+        # Get current interface.
+        vlan_interface = self.vlans_list[self.vlan_drop_down.current()]
+        # Update interface dictionary.
+        vlan_interface["config_has_changed"] = True
+
+        # Just return true for now. So far, I can't think of any restrictions that the switch description needs.
+        return True
+
+    def vlan_ip_address_validate(self, entry_contents) -> None:
+        """
+        This method is called everytime the contents of the vlan ip addr boxe is changed. It verifies input validity.
+
+        Parameters:
+        -----------
+            entry_contents - the text from the entry box.
+
+        Returns:
+        --------
+            bool - True if input is valid.
+        """
+        # Only allow digits and periods to be input.
+        is_valid = False
+        if not re.search('[a-zA-Z]', entry_contents) or entry_contents == "":
+            # Set toggle.
+            is_valid = True
+
+            # Get current interface.
+            vlan_interface = self.vlans_list[self.vlan_drop_down.current()]
+            # Update interface dictionary.
+            vlan_interface["config_has_changed"] = True
+
+        return is_valid
+
+    def vlan_submit_callback(self) -> None:
+        """
+        This method is called everytime the vlan submit button is pushed.
+        """
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # VLANs really are tricksters.
+        try:
+            # Create command list.
+            command_list = ["conf t"]
+            for vlan_interface in self.vlans_list:
+                print(vlan_interface)
+                # Check if interface actually needs updating.
+                if vlan_interface["config_has_changed"]:
+                    # Navigate into interface.
+                    command_list.append(f"interface {vlan_interface['name']}")
+
+                    # Set description.
+                    if len(vlan_interface["description"]) > 0:
+                        command_list.append(f"description {vlan_interface['description']}")
+                    else:
+                        command_list.append("no description")
+
+                    # Set vlan ip.
+                    if str(vlan_interface["ip address"]) != "0" and len(vlan_interface["ip address"]) > 0:
+                        command_list.append(f"ip address {vlan_interface['ip address']}")
+                    else:
+                        command_list.append("no ip address")
+
+            # Attach end command.
+            command_list.append("end")
+
+            # Print log.
+            self.logger.info(f"Sending interface commands {command_list} to {device['host']}")
+
+            # Get privs.
+            connection.enable()
+            # Run commands.
+            connection.send_config_set(command_list, exit_config_mode=False)
+            self.refresh_device_info(connection, device)
+        except KeyError:
+                self.logger.error(f"Unable to send commands {command_list} to {device['host']}. An existing VLAN is configured improperly, please fix it using the config window.")
+                messagebox.showerror(title="Failed", message=f"Unable to send commands {command_list} to {device['host']}. An existing VLAN is configured improperly, please fix it using the config window.", parent=self.window)
+
     
     ###########################################################################
     #
@@ -1335,6 +1517,16 @@ class ConfigureUI:
                 interface["switchport access vlan"] = self.access_vlan_box.get()
                 interface["switchport voice vlan"] = self.voice_vlan_box.get()
                 interface["switchport trunk native vlan"] = self.trunk_vlan_box.get()
+
+            # If window is enabled and a vlan has been selected, then update interface data with UI element values.
+            if self.is_enabled and self.vlan_drop_down.current() != -1:
+                # Get current interface.
+                vlan_interface = self.vlans_list[self.vlan_drop_down.current()]
+
+                # Update interface dictionary.
+                vlan_interface["description"] = self.vlan_description_box.get()
+                vlan_interface["ip address"] = self.vlan_ipaddr_box.get()
+                vlan_interface["shutdown"] = self.vlan_shutdown_check.get()
 
             # Call window event loop.
             self.window.update()
