@@ -51,7 +51,7 @@ class ConfigureUI:
         self.interface_range_selection = None
         self.interface_range_drop_down = None
         self.interface_description_box = None
-        self.int_shutdown = None
+        self.int_shutdown_check = None
         self.sw_mo_acc_check = None
         self.spantree_portfast_check = None
         self.spantree_bpduguard_check = None
@@ -119,7 +119,7 @@ class ConfigureUI:
         self.interface_range_selection.set("No interface is selected")
         self.vlan_selection = tk.StringVar(self.window)
         self.vlan_selection.set("No vlan is selected")
-        self.int_shutdown = tk.BooleanVar(self.window)
+        self.int_shutdown_check = tk.BooleanVar(self.window)
         self.sw_mo_acc_check = tk.BooleanVar(self.window)
         self.spantree_portfast_check = tk.BooleanVar(self.window)
         self.spantree_bpduguard_check = tk.BooleanVar(self.window)
@@ -191,7 +191,7 @@ class ConfigureUI:
         console_button.grid(row=1, column=4, columnspan=1, sticky=tk.NSEW)
 
         # Populate interface configuration frame.
-        desc_validate = self.interface_frame.register(self.vlan_description_box_validate)
+        desc_validate = self.interface_frame.register(self.description_box_validate)
         vlan_validate = self.interface_frame.register(self.vlan_box_validate)
         int_select_label = tk.Label(master=self.interface_frame, text="Select Interface:")
         int_select_label.grid(row=0, rowspan=1, column=0, columnspan=1, sticky=tk.NSEW)
@@ -203,13 +203,14 @@ class ConfigureUI:
         int_range_select_label = tk.Label(master=self.interface_frame, text="Range:")
         int_range_select_label.grid(row=1, rowspan=1, column=0, columnspan=1, sticky=tk.EW)
         self.interface_range_drop_down = ttk.Combobox(master=self.interface_frame, textvariable=self.interface_range_selection, values=self.interfaces_list)
+        self.interface_range_drop_down.bind('<<ComboboxSelected>>', self.select_range_interface) 
         self.interface_range_drop_down.grid(row=1, rowspan=1, column=1, columnspan=7, sticky=tk.EW)
         description_label = tk.Label(master=self.interface_frame, text="Description: ")
         description_label.grid(row=2, rowspan=1, column=0, columnspan=2, sticky=tk.W)
         self.interface_description_box = tk.Entry(master=self.interface_frame, width=10, validate="key", validatecommand=(desc_validate, '%P'))
         self.interface_description_box.grid(row=2, column=2, columnspan=8, sticky=tk.EW)
-        int_shutdown = tk.Checkbutton(master=self.interface_frame, text='shutdown', variable=self.int_shutdown, onvalue=True, offvalue=False, command=self.shutdown_callback)
-        int_shutdown.grid(row=3, rowspan=1, column=0, columnspan=10, sticky=tk.W)
+        int_shutdown_checkbox = tk.Checkbutton(master=self.interface_frame, text='shutdown', variable=self.int_shutdown_check, onvalue=True, offvalue=False, command=self.shutdown_callback)
+        int_shutdown_checkbox.grid(row=3, rowspan=1, column=0, columnspan=10, sticky=tk.W)
         sw_mo_acc_checkbox = tk.Checkbutton(master=self.interface_frame, text='switchport mode access', variable=self.sw_mo_acc_check, onvalue=True, offvalue=False, command=self.sw_mo_acc_callback)
         sw_mo_acc_checkbox.grid(row=4, rowspan=1, column=0, columnspan=10, sticky=tk.W)
         sw_mo_acc_vlan_label = tk.Label(master=self.interface_frame, text="switchport access vlan ")
@@ -234,7 +235,7 @@ class ConfigureUI:
         set_interface_button.grid(row=10, column=0, columnspan=10, sticky=tk.NSEW)
 
         # Populate vlan configuration frame.
-        vlan_desc_validate = self.vlan_frame.register(self.description_box_validate)
+        vlan_desc_validate = self.vlan_frame.register(self.vlan_description_box_validate)
         ip_validate = self.vlan_frame.register(self.vlan_ip_address_validate)
         vlan_select_label = tk.Label(master=self.vlan_frame, text="Select VLAN:")
         vlan_select_label.grid(row=0, rowspan=1, column=0, columnspan=2, sticky=tk.EW)
@@ -358,6 +359,7 @@ class ConfigureUI:
 
         # Clear interface and vlan selection.
         self.interface_selection.set("No interface is selected")
+        self.interface_range_selection.set("No interface is selected")
         self.vlan_selection.set("No vlan is selected")
         # Refresh info.
         self.refresh_device_info(connection, device)
@@ -597,9 +599,10 @@ class ConfigureUI:
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
             # Run command
-            output = connection.send_command("show cdp neighbors")
+            output1 = connection.send_command("show cdp neighbors")
+            output2 = connection.send_command("show cdp neighbors detail")
             # Open a new popup window with the output text.
-            text_popup(output, x_grid_size=11, y_grid_size=10)
+            text_popup(output1 + "\n\n\n\n" + output2, x_grid_size=11, y_grid_size=10)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -835,7 +838,7 @@ class ConfigureUI:
         self.interface_description_box.insert(0, interface["description"])
 
         # Update shutdown checkbox.
-        self.int_shutdown.set(interface["shutdown"])
+        self.int_shutdown_check.set(interface["shutdown"])
 
         # Update switch mode access checkbox.
         self.sw_mo_acc_check.set(interface["switchport mode access"])
@@ -872,6 +875,38 @@ class ConfigureUI:
             # Disable entry box.
             self.trunk_vlan_box.configure(state="disable")
 
+    def select_range_interface(self, event) -> None:
+        """
+        This method is called everytime a new item is selected from the range interface dropdown menu.
+
+        Parameters:
+        -----------
+            event - Given to us by the ComboBox function, kinda useless right now.
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Clear all input boxes and checkmarks.
+        self.interface_description_box.delete(0, tk.END)
+        self.interface_description_box.insert(0, "-")
+        self.int_shutdown_check.set(False)
+        self.sw_mo_acc_check.set(False)
+        self.sw_mo_trunk_check.set(False)
+        self.spantree_portfast_check.set(False)
+        self.spantree_bpduguard_check.set(False)
+        self.access_vlan_box.delete(0, tk.END)
+        self.voice_vlan_box.delete(0, tk.END)
+        self.trunk_vlan_box.delete(0, tk.END)
+        self.access_vlan_box.insert(0, "0")
+        self.voice_vlan_box.insert(0, "0")
+        self.trunk_vlan_box.insert(0, "0")
+
+        # Disable vlan entry boxes and spanning-tree checkboxes.
+        self.access_vlan_box.configure(state="disable")
+        self.voice_vlan_box.configure(state="disable")
+        self.trunk_vlan_box.configure(state="disable")
+
     def shutdown_callback(self) -> None:
         """
         This method is called everytime the shutdown checkbox is ticked.
@@ -888,6 +923,16 @@ class ConfigureUI:
             interface = self.interfaces_list[self.interface_drop_down.current()]
             # Update interface dictionary.
             interface["config_has_changed"] = True
+
+        # Check if interface range is selected. Update here instead of update_window method to avoid user confusion.
+        if self.interface_range_drop_down.current() != -1:
+            # Get interfaces within range.
+            interfaces = self.interfaces_list[self.interface_drop_down.current() : self.interface_range_drop_down.current() + 1]
+
+            # Loop through interfaces and update them.
+            for interface in interfaces:
+                # Update interface dictionary.
+                interface["shutdown"] = self.int_shutdown_check.get()
 
     def sw_mo_acc_callback(self) -> None:
         """
@@ -915,6 +960,17 @@ class ConfigureUI:
             # Update interface dictionary.
             interface["config_has_changed"] = True
 
+        # Check if interface range is selected. Update here instead of update_window method to avoid user confusion.
+        if self.interface_range_drop_down.current() != -1:
+            # Get interfaces within range.
+            interfaces = self.interfaces_list[self.interface_drop_down.current() : self.interface_range_drop_down.current() + 1]
+
+            # Loop through interfaces and update them.
+            for interface in interfaces:
+                # Update interface dictionary.
+                interface["switchport mode access"] = self.sw_mo_acc_check.get()
+                interface["switchport mode trunk"] = False
+
     def spantree_callback(self) -> None:
         """
         This method is called everytime either of the spanning-tree checkboxes are ticked.
@@ -923,6 +979,17 @@ class ConfigureUI:
         interface = self.interfaces_list[self.interface_drop_down.current()]
         # Update interface dictionary.
         interface["config_has_changed"] = True
+
+        # Check if interface range is selected. Update here instead of update_window method to avoid user confusion.
+        if self.interface_range_drop_down.current() != -1:
+            # Get interfaces within range.
+            interfaces = self.interfaces_list[self.interface_drop_down.current() : self.interface_range_drop_down.current() + 1]
+
+            # Loop through interfaces and update them.
+            for interface in interfaces:
+                # Update interface dictionary.
+                interface["spanning-tree portfast"] = self.spantree_portfast_check.get()
+                interface["spanning-tree bpduguard enable"] = self.spantree_bpduguard_check.get()
 
     def sw_mo_trunk_callback(self) -> None:
         """
@@ -950,6 +1017,17 @@ class ConfigureUI:
             # Update interface dictionary.
             interface["config_has_changed"] = True
 
+        # Check if interface range is selected. Update here instead of update_window method to avoid user confusion.
+        if self.interface_range_drop_down.current() != -1:
+            # Get interfaces within range.
+            interfaces = self.interfaces_list[self.interface_drop_down.current() : self.interface_range_drop_down.current() + 1]
+
+            # Loop through interfaces and update them.
+            for interface in interfaces:
+                # Update interface dictionary.
+                interface["switchport mode trunk"] = self.sw_mo_trunk_check.get()
+                interface["switchport mode access"] = False
+
     def description_box_validate(self, entry_contents) -> None:
         """
         This method is called everytime the contents of the description box are changed. It verifies input validity.
@@ -962,22 +1040,40 @@ class ConfigureUI:
         --------
             bool - True if input is valid.
         """
-        # Set flag indicating that the inteface has changed, and needs to be updated.
+        # Create instance variables.
+        is_valid = False
+
+        # Check input validity.
+        if str.isalnum(entry_contents) or entry_contents == "":
+            # Set toggle.
+            is_valid = True
+
+            # Set flag indicating that the inteface has changed, and needs to be updated.
+            if self.interface_range_drop_down.current() != -1:
+                # Get interfaces within range.
+                interfaces = self.interfaces_list[self.interface_drop_down.current() : self.interface_range_drop_down.current() + 1]
+                # Loop through interfaces and update them.
+                for interface in interfaces:
+                    # Update interface dictionary.
+                    interface["config_has_changed"] = True
+            else:
+                # Get current interface.
+                interface = self.interfaces_list[self.interface_drop_down.current()]
+                # Update interface dictionary.
+                interface["config_has_changed"] = True
+
+        # Check if interface range is selected. Update here instead of update_window method to avoid user confusion.
         if self.interface_range_drop_down.current() != -1:
             # Get interfaces within range.
             interfaces = self.interfaces_list[self.interface_drop_down.current() : self.interface_range_drop_down.current() + 1]
+
             # Loop through interfaces and update them.
             for interface in interfaces:
                 # Update interface dictionary.
-                interface["config_has_changed"] = True
-        else:
-            # Get current interface.
-            interface = self.interfaces_list[self.interface_drop_down.current()]
-            # Update interface dictionary.
-            interface["config_has_changed"] = True
+                interface["description"] = entry_contents
 
         # Just return true for now. So far, I can't think of any restrictions that the switch description needs.
-        return True
+        return is_valid
 
     def vlan_box_validate(self, entry_contents) -> None:
         """
@@ -1011,6 +1107,26 @@ class ConfigureUI:
                 # Update interface dictionary.
                 interface["config_has_changed"] = True
 
+        # Check if interface range is selected. Update here instead of update_window method to avoid user confusion.
+        if self.interface_range_drop_down.current() != -1:
+            # Get interfaces within range.
+            interfaces = self.interfaces_list[self.interface_drop_down.current() : self.interface_range_drop_down.current() + 1]
+
+            # Loop through interfaces and update them.
+            for interface in interfaces:
+                # Get the currently selected widget.
+                current_focus_widget = self.interface_frame.focus_get()
+                # Check if vlan box has been altered.
+                if current_focus_widget == self.access_vlan_box:
+                    # Update interface dictionary.
+                    interface["switchport access vlan"] = entry_contents
+                elif current_focus_widget == self.voice_vlan_box:
+                    # Update interface dictionary.
+                    interface["switchport voice vlan"] = entry_contents
+                elif current_focus_widget == self.trunk_vlan_box:
+                    # Update interface dictionary.
+                    interface["switchport trunk native vlan"] = entry_contents
+
         return is_valid
 
     def interface_submit_callback(self) -> None:
@@ -1023,24 +1139,6 @@ class ConfigureUI:
         device = self.devices[current_device_index]
         # Get connection of device.
         connection = self.ssh_connections[current_device_index]
-
-        # Check if interface range is selected. Update here instead of update_window method to avoid user confusion.
-        if self.interface_range_drop_down.current() != -1:
-            # Get interfaces within range.
-            interfaces = self.interfaces_list[self.interface_drop_down.current() : self.interface_range_drop_down.current() + 1]
-
-            # Loop through interfaces and update them.
-            for interface in interfaces:
-                # Update interface dictionary.
-                interface["description"] = self.interface_description_box.get()
-                interface["shutdown"] = self.int_shutdown.get()
-                interface["switchport mode access"] = self.sw_mo_acc_check.get()
-                interface["switchport mode trunk"] = self.sw_mo_trunk_check.get()
-                interface["spanning-tree portfast"] = self.spantree_portfast_check.get()
-                interface["spanning-tree bpduguard enable"] = self.spantree_bpduguard_check.get()
-                interface["switchport access vlan"] = self.access_vlan_box.get()
-                interface["switchport voice vlan"] = self.voice_vlan_box.get()
-                interface["switchport trunk native vlan"] = self.trunk_vlan_box.get()
 
         # Create command list.
         command_list = ["conf t"]
@@ -1101,10 +1199,11 @@ class ConfigureUI:
                     command_list.append(f"interface {interface['name']}")
 
                 # Set description.
-                if len(interface["description"]) > 0:
-                    command_list.append(f"description {interface['description']}")
-                else:
-                    command_list.append("no description")
+                if interface["description"] != "-":
+                    if len(interface["description"]) > 0:
+                        command_list.append(f"description {interface['description']}")
+                    else:
+                        command_list.append("no description")
 
                 # Set port enabled or disabled.
                 if interface["shutdown"]:
@@ -1123,6 +1222,10 @@ class ConfigureUI:
         # Run commands.
         connection.send_config_set(command_list, exit_config_mode=False)
         self.refresh_device_info(connection, device)
+        # Reset dropdowns if using a ranged config.
+        if self.interface_range_selection.get() != "No interface is selected":
+            self.interface_selection.set("No interface is selected")
+            self.interface_range_selection.set("No interface is selected")
 
     ###########################################################################
     #
@@ -1502,14 +1605,14 @@ class ConfigureUI:
                         # Disable element.
                         child.configure(state="disable")
 
-            # If window is enabled and an interface has been selected, then update interface data with UI element values.
-            if self.is_enabled and self.interface_drop_down.current() != -1:
+            # If window is enabled and an interface has been selected and not interface range, then update interface data with UI element values.
+            if self.is_enabled and self.interface_drop_down.current() != -1 and self.interface_range_drop_down.current() == -1:
                 # Get current interface.
                 interface = self.interfaces_list[self.interface_drop_down.current()]
 
                 # Update interface dictionary.
                 interface["description"] = self.interface_description_box.get()
-                interface["shutdown"] = self.int_shutdown.get()
+                interface["shutdown"] = self.int_shutdown_check.get()
                 interface["switchport mode access"] = self.sw_mo_acc_check.get()
                 interface["switchport mode trunk"] = self.sw_mo_trunk_check.get()
                 interface["spanning-tree portfast"] = self.spantree_portfast_check.get()
