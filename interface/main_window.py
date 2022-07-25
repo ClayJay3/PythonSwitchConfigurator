@@ -3,11 +3,16 @@ import os
 import sys
 import tkinter as tk
 from threading import Thread
+from tkinter import messagebox
+from turtle import back
+
+from numpy import delete
 
 from interface import configure_window
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.open_connection import (ssh_autodetect_info, ssh_autodetect_switchlist_info)
+from utils.net_crawl import cdp_auto_discover, get_cdp_neighbors_info
 from utils.ping import ping_of_death
 
 
@@ -29,6 +34,8 @@ class MainUI():
         self.password_entry = None
         self.list = None
         self.ip_list = []
+        self.discovery_list = []
+        self.already_auto_discovering = False
 
         # Open log file for displaying in console window.
         self.log_file = open("logs/latest.log", "r", encoding="utf-8")
@@ -37,6 +44,10 @@ class MainUI():
             self.cache_file = open("cache.cache", "w+")
         else:
             self.cache_file = open("cache.cache", "r+")
+
+        # Set loggging level of netmiko and paramiko.
+        logging.getLogger("paramiko").setLevel(logging.ERROR)
+        logging.getLogger("netmiko").setLevel(logging.ERROR)
 
     def initialize_window(self) -> None:
         """
@@ -86,12 +97,12 @@ class MainUI():
         creds_frame.columnconfigure(self.grid_size, weight=1)
         # Create frame for entering quick command.
         quick_push_frame = tk.Frame(master=self.window, relief=tk.GROOVE, borderwidth=3)
-        quick_push_frame.grid(row=1, rowspan=5, column=5, columnspan=5, sticky=tk.NSEW)
+        quick_push_frame.grid(row=1, rowspan=2, column=5, columnspan=5, sticky=tk.NSEW)
         quick_push_frame.rowconfigure(self.grid_size, weight=1)
         quick_push_frame.columnconfigure(self.grid_size, weight=1)
         # Create frame for console output
         console_frame = tk.Frame(master=self.window, relief=tk.SUNKEN, borderwidth=15, background="black")
-        console_frame.grid(row=6, rowspan=4, column=5, columnspan=5, sticky=tk.NSEW)
+        console_frame.grid(row=3, rowspan=7, column=5, columnspan=5, sticky=tk.NSEW)
         console_frame.rowconfigure(self.grid_size, weight=1)
         console_frame.columnconfigure(self.grid_size, weight=1)
         
@@ -100,8 +111,10 @@ class MainUI():
         greeting.grid()
 
         # Populate loading config frame.
-        load_config_title = tk.Label(master=load_switch_config_frame, text="Comprehensive Configure", width=10, height=1, font=(self.font, 20))
-        load_config_title.grid(row=0, columnspan=len(self.grid_size), sticky=tk.EW)
+        load_config_title = tk.Label(master=load_switch_config_frame, text="Comprehensive Configure", height=1, font=(self.font, 20))
+        load_config_title.grid(row=0, columnspan=len(self.grid_size), sticky=tk.N)
+        auto_discover_button = tk.Button(master=load_switch_config_frame, text="Auto Discover", foreground="black", background="white", command=self.auto_discover_switches)
+        auto_discover_button.grid(row=0, rowspan=1, column=0, columnspan=1, sticky=tk.SW)
         self.text_box = tk.Text(master=load_switch_config_frame, width=10, height=5)
         self.text_box.grid(row=1, rowspan=9, columnspan=9, sticky=tk.NSEW)
         button = tk.Button(master=load_switch_config_frame, text="Pull Configs", foreground="black", background="white", command=self.read_configs_button_callback)
@@ -141,6 +154,52 @@ class MainUI():
                     self.username_entry.insert(0, lines.pop(0).strip())
         except Exception:
             self.logger.error("Unable to read cache file. It must be corrupted.")
+
+    def auto_discover_switches(self) -> None:
+        """
+        This function is triggered everytime the Auto Discover button is pressed. It spawns a new process
+        that uses recursion to find the next switch connected to the current one and so on.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Check if auto discover has already been started.
+        if not self.already_auto_discovering:
+            # Get text from textbox.
+            text = self.text_box.get('1.0', tk.END).splitlines()
+            Thread(target=self.auto_discover_back_process, args=(text, self.username_entry.get(), self.password_entry.get())).start()
+            # Set safety toggle.
+            self.already_auto_discovering = True
+            # Print log.
+            self.logger.info("Auto discover has been triggered.")
+            messagebox.showwarning(message="Only run autodiscovery occasionally or when multiple new devices are connected to the network.")
+            messagebox.showinfo(message="Auto discovery has been started, please be patient while the program searches for new devices.")
+        else:
+            # Print log.
+            self.logger.warning("User tried to start auto discover while it was already running.")
+            messagebox.showwarning(message="Auto discover is already running, please be patient. Watch the console output for discover info.")
+
+    def auto_discover_back_process(self, text, username, password) -> None:
+        """
+        Helper function for auto discover.
+        """
+        # Discover ips.
+        discover_ip_list = cdp_auto_discover(text, username, password)
+
+        # Store values in discover list array.
+        for addr in discover_ip_list:
+            self.discovery_list.append(addr)
+
+        # Print log.
+        self.logger.info(f"FINISHED! Discovered a total of {len(self.discovery_list)} IPs: {self.discovery_list}")
+
+        # Reset safety toggle.
+        self.already_auto_discovering = False
 
     def read_configs_button_callback(self) -> None:
         """
@@ -224,6 +283,17 @@ class MainUI():
             self.log_file.seek(where)
         else:
             self.list.insert(0, line)
+
+        # Update the textbox with the discovering list if it's not empty.
+        if len(self.discovery_list) > 0:
+            # Delete current contents of textbox.
+            self.text_box.delete("1.0", tk.END)
+            # Loop through and append each ip to textbox.
+            for i in range(len(self.discovery_list)):
+                self.text_box.insert(tk.END, self.discovery_list.pop(0) + "\n")
+
+            # Clear list just to be sure.
+            self.discovery_list.clear()
 
         # Call main window event loop.
         self.window.update()

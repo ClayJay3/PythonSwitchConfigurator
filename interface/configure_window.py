@@ -1028,7 +1028,7 @@ class ConfigureUI:
                 interface["switchport mode trunk"] = self.sw_mo_trunk_check.get()
                 interface["switchport mode access"] = False
 
-    def description_box_validate(self, entry_contents) -> None:
+    def description_box_validate(self, entry_contents) -> bool:
         """
         This method is called everytime the contents of the description box are changed. It verifies input validity.
 
@@ -1041,13 +1041,13 @@ class ConfigureUI:
             bool - True if input is valid.
         """
         # Create instance variables.
-        is_valid = False
+        is_valid = True
 
         # Check input validity.
-        if str.isalnum(entry_contents) or entry_contents == "":
+        if re.compile('[@_!#$%^&*()<>?/\\\|}{~:[\]]').search(entry_contents) != None:
             # Set toggle.
-            is_valid = True
-
+            is_valid = False
+        else:
             # Set flag indicating that the inteface has changed, and needs to be updated.
             if self.interface_range_drop_down.current() != -1:
                 # Get interfaces within range.
@@ -1274,7 +1274,7 @@ class ConfigureUI:
         This method is called everytime the vlan shutdown checkbox is ticked.
         """
         # Get current interface.
-        vlan_interface = self.interfaces_list[self.interface_drop_down.current()]
+        vlan_interface = self.vlans_list[self.vlan_drop_down.current()]
         # Update interface dictionary.
         vlan_interface["config_has_changed"] = True
 
@@ -1339,11 +1339,19 @@ class ConfigureUI:
             # Create command list.
             command_list = ["conf t"]
             for vlan_interface in self.vlans_list:
-                print(vlan_interface)
                 # Check if interface actually needs updating.
                 if vlan_interface["config_has_changed"]:
+                    # Navigate into vlan.
+                    command_list.append(f"vlan {vlan_interface['vlan']}")
+                    if len(vlan_interface["description"]) > 0:
+                        # Change vlan name.
+                        command_list.append(f"name {vlan_interface['description']}")
+                    else:
+                        # Change vlan name.
+                        command_list.append("no name")
+
                     # Navigate into interface.
-                    command_list.append(f"interface {vlan_interface['name']}")
+                    command_list.append(f"interface Vlan{vlan_interface['vlan']}")
 
                     # Set description.
                     if len(vlan_interface["description"]) > 0:
@@ -1356,6 +1364,12 @@ class ConfigureUI:
                         command_list.append(f"ip address {vlan_interface['ip address']}")
                     else:
                         command_list.append("no ip address")
+
+                    # Set shutdown.
+                    if vlan_interface["shutdown"]:
+                        command_list.append("shutdown")
+                    else:
+                        command_list.append("no shutdown")
 
             # Attach end command.
             command_list.append("end")
@@ -1654,6 +1668,12 @@ class ConfigureUI:
             self.logger.info("Configure window exit action has been invoked. Performing closing actions.")
             # Set toggle.
             self.window_is_initialized = False
+
+            # Attempt to nicely close all ssh connections.
+            for connection in self.ssh_connections:
+                if connection is not None and connection.is_alive():
+                    connection.disconnect()
+
             # Destroy window.
             self.window.destroy()
 
