@@ -170,7 +170,7 @@ def get_cdp_neighbors_info(username, password, export_info, ip_addr) -> Tuple(li
                 if software_name == "NULL" and version == "NULL":
                     is_switch = False
                     # If platform is null, then it's not a phone.
-                    if platform != "NULL":
+                    if platform != "NULL" and platform != "Linux":
                         is_phone = True
 
                 # Append parent address to device.

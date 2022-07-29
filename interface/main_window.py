@@ -5,6 +5,7 @@ import random
 import tkinter as tk
 from threading import Thread
 from tkinter import messagebox
+from turtle import width
 from pyvis.network import Network
 
 from interface import configure_window
@@ -229,19 +230,68 @@ class MainUI():
 
         # Open network discovery map.
         # Create new network map object from pyvis.
-        graph_net = Network()
+        graph_net = Network(width="1920px", height="1080px")
         # Create a lamba function to generate random hex color codes.
         gen_rand_hex = lambda: random.randint(0,255)
-        # Generate a list of node weights depending on how many times their names shows up in the export list.
-        for 
+        # Generate a list of node weights depending on how many times their names show up in the export list.
+        # Also generate a list of colors depending on device type.
+        name_weights = []
+        colors = []
+        for device in export_info:
+            # Get the device hostname.
+            hostname = device["hostname"]
+            weight = 0
+            # Loop through export info again and count occurances.
+            for info in export_info:
+                # Check if the hostname or parent hostname equals the current hostname.
+                if info["hostname"] == hostname or info["parent_host"] == hostname:
+                    # Add one to weight.
+                    weight += 1
+            # Append weight to weights list.
+            name_weights.append(weight)
+
+            # Check device type and append color.
+            if device["is_wireless_ap"]:
+                # Orange.
+                colors.append("#eb6200")
+            elif device["is_switch"]:
+                # Blue
+                colors.append("#3300eb")
+            elif device["is_phone"]:
+                # Yellow
+                colors.append("#f0e805")
+            else:
+                # Purple.
+                colors.append("#9f3dae")
+
         # Add the nodes to the network graph.
-        graph_net.add_nodes(list(range(len(export_info)) + 1), 
-                        value=[],
-                        title=[str(info) for info in export_info],
-                        x=[21.4, 54.2, 11.2],
-                        y=[100.2, 23.54, 32.1],
-                        label=[info["device"] for info in export_info],
-                        color=["#%02X%02X%02X" % (gen_rand_hex(), gen_rand_hex(), gen_rand_hex()) for i in range(len(export_info))])
+        # graph_net.add_nodes(list(range(len(export_info))),
+        #                 value=name_weights,
+        #                 title=[str(info) for info in export_info],
+        #                 label=[info["hostname"] for info in export_info],
+        #                 color=["#%02X%02X%02X" % (gen_rand_hex(), gen_rand_hex(), gen_rand_hex()) for i in range(len(export_info))])
+        graph_net.add_nodes(list(range(len(export_info))),
+                    value=name_weights,
+                    title=[str(info) for info in export_info],
+                    label=[info["hostname"] for info in export_info],
+                    color=colors)
+
+        # Add the edges/paths to the nodes. This is super ineffficient. 
+        for i, device in enumerate(export_info):
+            # Get current device hostname. Cutoff domain.
+            hostname = device["hostname"].split(".", 1)[0]
+            # Get current device parent.
+            parent_hostname = device["parent_host"]
+            for j, device2 in enumerate(export_info):
+                # Get search device hostname. Cutoff domain.
+                search_hostname = device2["hostname"].split(".", 1)[0]
+                # Check if parent and seach name are the same.
+                if parent_hostname == search_hostname:
+                    # Add edges based on node names.
+                    graph_net.add_edge(i, j)
+
+        # Show graph.
+        graph_net.show("exports/graph.html")
 
         # Reset safety toggle.
         self.already_auto_discovering = False
