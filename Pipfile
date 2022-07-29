@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+tk = "*"
+pyinstaller = "*"
+netmiko = "*"
+rich = "*"
+pyyaml = "*"
+pysnmp = "*"
+numpy = "*"
+setuptools = "*"
+gevent = "*"
+pyvis = "*"
+
+[dev-packages]
+
+[requires]
+python_version = "3.8"
