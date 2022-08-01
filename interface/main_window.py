@@ -13,6 +13,7 @@ from numpy import delete
 from pyvis.network import Network
 
 from interface import configure_window
+from utils.open_connection import ssh_autodetect_info
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils.net_crawl import cdp_auto_discover, clear_discoveries
@@ -241,7 +242,7 @@ class MainUI():
             # Check if auto discover has already been started.
             if not self.already_auto_discovering:
                 # Ask user if they want to export extra info.
-                export_data_prompt = messagebox.askyesno(title="Export Data?", message="Would you like to export the discovered switch data to a CSV file? It may take a longer for discovery to run.")
+                export_data_prompt = messagebox.askyesno(title="Export Data?", message="Would you like to export the discovered switch data to a CSV file? It may take longer for discovery to run.")
                 # Clear data lists from discover module.
                 clear_discoveries()
                 # Get username and password lists.
@@ -256,12 +257,30 @@ class MainUI():
                         passwords.pop(i)
                 # Get text from textbox.
                 text = self.text_box.get('1.0', tk.END).splitlines()
-                Thread(target=self.auto_discover_back_process, args=(text, usernames, passwords, export_data_prompt)).start()
-                # Set safety toggle.
-                self.already_auto_discovering = True
-                # Print log.
-                self.logger.info("Auto discover has been triggered.")
-                messagebox.showwarning(message="Auto discovery has been started, please be patient while the program searches for new devices.\nOnly run autodiscovery occasionally or when multiple new devices are connected to the network.")
+
+                # Check if we are able to auth with the first device at least before continuing.
+                test_ip = text[0].strip()
+                auth_success = False
+                # Attempt to auth.
+                first_switch = ssh_autodetect_info(usernames, passwords, test_ip)
+                # Check if auth was successful.
+                if first_switch["host"] != "Unable_to_Authenticate":
+                    # Set toggle.
+                    auth_success = True
+                
+                # Only continue if the first switch login was successful.
+                if auth_success:
+                    # Start backprocess for auto discover.
+                    Thread(target=self.auto_discover_back_process, args=(text, usernames, passwords, export_data_prompt)).start()
+                    # Set safety toggle.
+                    self.already_auto_discovering = True
+                    # Print log.
+                    self.logger.info("Auto discover has been triggered.")
+                    messagebox.showwarning(message="Auto discovery has been started, please be patient while the program searches for new devices.\nOnly run autodiscovery occasionally or when multiple new devices are connected to the network.")
+                else:
+                    # Print log.
+                    self.logger.info("Unable to authenticate with the first device. Make sure at least one set of creds is compatible.")
+                    messagebox.showerror(message="Unable to authenticate with the first device. Make sure at least one set of creds is compatible.")
             else:
                 # Print log.
                 self.logger.warning("User tried to start auto discover while it was already running.")
@@ -271,12 +290,12 @@ class MainUI():
             self.logger.warning("You must enter username and password credentials. Otherwise, I can't log into the switch!")
             messagebox.showwarning(title="Warning", message="You must enter username and password credentials.")
 
-    def auto_discover_back_process(self, text, username, password, export_data) -> None:
+    def auto_discover_back_process(self, text, usernames, passwords, export_data) -> None:
         """
         Helper function for auto discover.
         """
         # Discover ips.
-        discover_ip_list, export_info = cdp_auto_discover(text, username, password, export_data)
+        discover_ip_list, export_info = cdp_auto_discover(text, usernames, passwords, export_data)
 
         # Store values in discover list array.
         for addr in discover_ip_list:
@@ -374,6 +393,11 @@ class MainUI():
             const options = {
                 "configure": {
                     "enabled": true
+                },
+                "nodes": {
+                    "font": {
+                    "size": 5
+                    }
                 },
                 "layout": {
                     "hierarchical": {

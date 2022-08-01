@@ -7,6 +7,7 @@ from multiprocessing.pool import ThreadPool
 from unittest import result
 from netmiko import NetmikoAuthenticationException
 from netmiko.ssh_dispatcher import ConnectHandler
+from numpy import number
 
 # Define Constants.
 MAX_DISCOVERY_THREADS = 100
@@ -85,6 +86,7 @@ def get_cdp_neighbors_info(usernames, passwords, export_info, ip_addr) -> Tuple(
     Returns:
     --------
         list - A list containing the connected cdp devices IP info.
+        device_info - A list containing other device info.
     """
     # Create instance variables and objects.
     logger = logging.getLogger(__name__)

@@ -61,8 +61,6 @@ def ssh_autodetect_info(usernames, passwords, ip_addr, result_info=None) -> str:
             except ValueError:
                 logger.error(f"Unable to find switch prompt for {ip_addr}")
 
-            # Copy devices info to result param.
-            result_info = remote_device
             # Stop looping through for loop.
             break
         except NetmikoAuthenticationException:
@@ -80,7 +78,7 @@ def ssh_autodetect_info(usernames, passwords, ip_addr, result_info=None) -> str:
             remote_device["ip_address"] = ip_addr
             remote_device["host"] = "Unable_to_Authenticate"
 
-    return result_info
+    return remote_device
 
 def ssh_autodetect_switchlist_info(usernames, passwords, ip_list, device_list) -> None:
     """
