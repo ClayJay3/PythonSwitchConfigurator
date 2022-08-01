@@ -28,58 +28,60 @@ def ping(ip_or_hostname) -> Tuple[bool, str, str]:
     ip_addr = None
     hostname = None
 
-    # Ping commands will be different if we are on linux or windows.
-    try:
-        if platform.system() == "Linux":
-            # Ping the machine.
-            response = subprocess.Popen("ping -c 1 " + ip_or_hostname, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-            response.wait()
-            response = response.poll()
-            # Check the response.
-            if response == 0:
-                # Set reachable var.
-                reachable = True
-                # Try to resolve both the IP and hostname.
-                ip_addr = socket.gethostbyname(ip_or_hostname)
-                hostname, _, _ = socket.gethostbyaddr(ip_or_hostname)
-                # Print host is up.
-                logger.info(f"Ping of {ip_addr}: Host {hostname} is up!")
-            else:
-                # Set reachable var.
-                reachable = False
-                # Print host id down.
-                logger.warning(f"Unable to talk to {ip_or_hostname}")
-        else:
-            # Ping the machine.
-            response = subprocess.Popen("ping -n 1 " + ip_or_hostname, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
-            response.wait()
-            response = response.poll()
-            # Check the response.
-            if response == 0:
-                # Set reachable var.
-                reachable = True
-                # Try to resolve hostname, must catch this because it throws errors if it fails.
-                try:
+    # Check if given ip is not empty.
+    if len(ip_or_hostname) > 0:
+        # Ping commands will be different if we are on linux or windows.
+        try:
+            if platform.system() == "Linux":
+                # Ping the machine.
+                response = subprocess.Popen("ping -c 1 " + ip_or_hostname, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+                response.wait()
+                response = response.poll()
+                # Check the response.
+                if response == 0:
+                    # Set reachable var.
+                    reachable = True
                     # Try to resolve both the IP and hostname.
                     ip_addr = socket.gethostbyname(ip_or_hostname)
                     hostname, _, _ = socket.gethostbyaddr(ip_or_hostname)
-                    hostname = "asdf"
-                except Exception:
-                    # Set hostname equal to ip address.
-                    ip_addr = ip_or_hostname
-                    hostname = ip_addr
-                # Print host is up.
-                logger.info(f"Ping of {ip_addr}: Host {hostname} is up!")
+                    # Print host is up.
+                    logger.info(f"Ping of {ip_addr}: Host {hostname} is up!")
+                else:
+                    # Set reachable var.
+                    reachable = False
+                    # Print host id down.
+                    logger.warning(f"Unable to talk to {ip_or_hostname}")
             else:
-                # Set reachable var.
-                reachable = False
-                # Print host id down.
-                logger.warning(f"Unable to talk to {ip_or_hostname}")
+                # Ping the machine.
+                response = subprocess.Popen("ping -n 1 " + ip_or_hostname, stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+                response.wait()
+                response = response.poll()
+                # Check the response.
+                if response == 0:
+                    # Set reachable var.
+                    reachable = True
+                    # Try to resolve hostname, must catch this because it throws errors if it fails.
+                    try:
+                        # Try to resolve both the IP and hostname.
+                        ip_addr = socket.gethostbyname(ip_or_hostname)
+                        hostname, _, _ = socket.gethostbyaddr(ip_or_hostname)
+                        hostname = "asdf"
+                    except Exception:
+                        # Set hostname equal to ip address.
+                        ip_addr = ip_or_hostname
+                        hostname = ip_addr
+                    # Print host is up.
+                    logger.info(f"Ping of {ip_addr}: Host {hostname} is up!")
+                else:
+                    # Set reachable var.
+                    reachable = False
+                    # Print host id down.
+                    logger.warning(f"Unable to talk to {ip_or_hostname}")
 
-        return reachable, ip_addr, hostname
-    except Exception as exception:
-        # Print debug.
-        logger.critical(f"Something weird happened while pinging {ip_or_hostname}.", exc_info=exception, stack_info=True)
+            return reachable, ip_addr, hostname
+        except Exception as exception:
+            # Print debug.
+            logger.critical(f"Something weird happened while pinging {ip_or_hostname}.", exc_info=exception, stack_info=True)
 
 
 def ping_of_death(text, ip_list) -> None:

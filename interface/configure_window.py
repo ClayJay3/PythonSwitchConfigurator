@@ -38,8 +38,8 @@ class ConfigureUI:
         self.upload_frame = None
 
         # Window elements and objects.
-        self.username = None
-        self.password = None
+        self.usernames = None
+        self.passwords = None
         self.ip_list = []
         self.ssh_connections = []
         self.devices = []
@@ -72,15 +72,15 @@ class ConfigureUI:
         # This serves as a temp var used by many things, anytime a popup window that is destroyable is made, it's stored here.
         self.popup = None
 
-    def run(self, ips, username, password) -> None:
+    def run(self, ips, usernames, passwords) -> None:
         """
         Call this function to start UI window in a new thread.
         """
         # Set ip list var.
         self.ip_list = ips
         # Set username and password var.
-        self.username = username
-        self.password = password
+        self.usernames = usernames
+        self.passwords = passwords
         # Set window is open.
         self.window_is_open = True
 
@@ -429,7 +429,7 @@ class ConfigureUI:
             # Run command
             output = connection.send_command("show interface status")
             # Open a new popup window with the output text.
-            text_popup(output)
+            text_popup(output, x_grid_size=12)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -800,7 +800,7 @@ class ConfigureUI:
 
 
         # Open new CMD window with an ssh connection to the switch.
-        subprocess.Popen(f"start /wait ssh {self.username}@{addr}", shell=True)
+        subprocess.Popen(f"start /wait ssh {device['username']}@{addr}", shell=True)
 
 
     ###########################################################################
@@ -1555,7 +1555,7 @@ class ConfigureUI:
                         addresses.append(temp)
                     
                     # Now that we have a good list of IPs, get device info about each one.
-                    Thread(target=ssh_autodetect_switchlist_info, args=(self.username, self.password, addresses, self.devices)).start()
+                    Thread(target=ssh_autodetect_switchlist_info, args=(self.usernames, self.passwords, addresses, self.devices)).start()
 
                     # Set toggle.
                     self.retrieving_devices = True

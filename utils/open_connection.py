@@ -13,15 +13,15 @@ from netmiko.ssh_dispatcher import ConnectHandler
 # Create constants.
 SSH_THREADS = 100
 
-def ssh_autodetect_info(username, password, ip_addr, result_info=None) -> str:
+def ssh_autodetect_info(usernames, passwords, ip_addr, result_info=None) -> str:
     """
     This method will attempt to autodetect the switch device info using netmiko's
     ssh_autodetect
 
     Parameters:
     -----------
-        username - The username creds to try and login with.
-        password - The password creds to try and login with.
+        username - The username creds list to try and login with.
+        password - The password creds list to try and login with.
         ip_address - The ip address of the device to try to connect to.
         result_info - This can be used as a reference variable if this function is running in
                     a thread and it's return values can't be retrieved.
@@ -33,58 +33,64 @@ def ssh_autodetect_info(username, password, ip_addr, result_info=None) -> str:
     # Create instance variables and objects.
     logger = logging.getLogger(__name__)
 
-    # Create device dictionary.
-    remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password}
-    # If the device is not a switch codemiko will crash.
-    try:
-        # Print logging info.
-        logger.info(f"Autodetecting model and opening connection for {ip_addr}")
-        # Open new ssh connection with switch.
-        ssh_connection = ConnectHandler(**remote_device)
-        # Print logging info.
-        logger.info("Waiting for command prompt...")
-
-        #######################################################################
-        # Get the IP and hostname info.
-        #######################################################################
+    # Try each username.
+    for username, password in zip(usernames, passwords):
+        # Create device dictionary.
+        remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password}
+        # If the device is not a switch codemiko will crash.
         try:
-            # Look for switch prompt.
-            prompt = ssh_connection.find_prompt()
-            # Print prompt.
-            logger.info(f"Found prompt: {prompt}")
-            # Take off # from prompt to get hostname.
-            remote_device["host"] = prompt[:-1]
-            # Store known ip address.
-            remote_device["ip_address"] = ip_addr
-        except ValueError:
-            logger.error(f"Unable to find switch prompt for {ip_addr}")
-    except NetmikoAuthenticationException:
-        # Print log info.
-        logger.error(f"Unable to authenticate with device {ip_addr}")
-        # Set default value.
-        remote_device["ip_address"] = ip_addr
-        remote_device["host"] = "Unable_to_Authenticate"
-    except NetmikoTimeoutException:
-        # Print log info.
-        logger.error(f"Something happened while trying to communicate with device {ip_addr}")
-        # Set default value.
-        remote_device["ip_address"] = ip_addr
-        remote_device["host"] = "Unable_to_Authenticate"
+            # Print logging info.
+            logger.info(f"Autodetecting model and opening connection for {ip_addr}")
+            # Open new ssh connection with switch.
+            ssh_connection = ConnectHandler(**remote_device)
+            # Print logging info.
+            logger.info("Waiting for command prompt...")
 
-    # Copy devices info to result param.
-    result_info = remote_device
+            #######################################################################
+            # Get the IP and hostname info.
+            #######################################################################
+            try:
+                # Look for switch prompt.
+                prompt = ssh_connection.find_prompt()
+                # Print prompt.
+                logger.info(f"Found prompt: {prompt}")
+                # Take off # from prompt to get hostname.
+                remote_device["host"] = prompt[:-1]
+                # Store known ip address.
+                remote_device["ip_address"] = ip_addr
+            except ValueError:
+                logger.error(f"Unable to find switch prompt for {ip_addr}")
+
+            # Copy devices info to result param.
+            result_info = remote_device
+            # Stop looping through for loop.
+            break
+        except NetmikoAuthenticationException:
+            # Print log info.
+            logger.error(f"Unable to authenticate with device {ip_addr}")
+            # Set default value.
+            remote_device["ip_address"] = ip_addr
+            remote_device["host"] = "Unable_to_Authenticate"
+            # Print log
+            logger.warning(f"Failed to login to device {ip_addr} while discovering. Trying next username and password.")
+        except NetmikoTimeoutException:
+            # Print log info.
+            logger.error(f"Something happened while trying to communicate with device {ip_addr}")
+            # Set default value.
+            remote_device["ip_address"] = ip_addr
+            remote_device["host"] = "Unable_to_Authenticate"
 
     return result_info
 
-def ssh_autodetect_switchlist_info(username, password, ip_list, device_list) -> None:
+def ssh_autodetect_switchlist_info(usernames, passwords, ip_list, device_list) -> None:
     """
     This method will attempt to autodetect a list of switches device info using netmiko's
     ssh_autodetect.
 
     Parameters:
     -----------
-        username - The username creds to try and login with.
-        password - The password creds to try and login with.
+        username - The username creds list to try and login with.
+        password - The password creds list to try and login with.
         ip_list - The ip addresses of the device to try to connect to.
         device_list - The list to store the deivce info in. (Returned in same order as ip_list)
 
@@ -99,14 +105,14 @@ def ssh_autodetect_switchlist_info(username, password, ip_list, device_list) -> 
     # Check if the ip list actually contains something.
     if len(ip_list) > 0:
         # Try to auth with one switch first.
-        first_switch = ssh_autodetect_info(username, password, ip_list.pop(0))
+        first_switch = ssh_autodetect_info(usernames, passwords, ip_list.pop(0))
         # Check if auth was successful.
         if first_switch["host"] != "Unable_to_Authenticate":
             # Append first device to device list.
             device_list.append(first_switch)
 
             # Loop through each line and try to ping it in a new thread.
-            devices = thread_pool.map_async(partial(ssh_autodetect_info, username, password), ip_list)
+            devices = thread_pool.map_async(partial(ssh_autodetect_info, usernames, passwords), ip_list)
             # Wait for pool threads to finish.
             thread_pool.close()
             thread_pool.join()

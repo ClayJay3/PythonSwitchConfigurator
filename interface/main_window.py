@@ -1,17 +1,20 @@
+import copy
 import logging
 import os
 import sys
 import random
+import webbrowser
 import tkinter as tk
 from threading import Thread
 from tkinter import messagebox
-from turtle import width
+from tkinter import font
+
+from numpy import delete
 from pyvis.network import Network
 
 from interface import configure_window
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils.open_connection import (ssh_autodetect_info, ssh_autodetect_switchlist_info)
 from utils.net_crawl import cdp_auto_discover, clear_discoveries
 from utils.ping import ping_of_death
 
@@ -29,9 +32,10 @@ class MainUI():
         self.grid_size = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         self.font = "antiqueolive"
         self.window = None
+        self.creds_frame = None
         self.text_box  = None
-        self.username_entry = None
-        self.password_entry = None
+        self.username_entrys = []
+        self.password_entrys = []
         self.list = None
         self.ip_list = []
         self.discovery_list = []
@@ -91,10 +95,10 @@ class MainUI():
         load_switch_config_frame.rowconfigure(self.grid_size, weight=1)
         load_switch_config_frame.columnconfigure(self.grid_size, weight=1)
         # Create frame for entering user login creds.
-        creds_frame = tk.Frame(master=self.window, relief=tk.GROOVE, borderwidth=3)
-        creds_frame.grid(row=9, columnspan=5, sticky=tk.NSEW)
-        creds_frame.rowconfigure(self.grid_size, weight=1)
-        creds_frame.columnconfigure(self.grid_size, weight=1)
+        self.creds_frame = tk.Frame(master=self.window, relief=tk.GROOVE, borderwidth=3)
+        self.creds_frame.grid(row=9, columnspan=5, sticky=tk.NSEW)
+        self.creds_frame.rowconfigure(self.grid_size, weight=1)
+        self.creds_frame.columnconfigure(self.grid_size, weight=1)
         # Create frame for entering quick command.
         quick_push_frame = tk.Frame(master=self.window, relief=tk.GROOVE, borderwidth=3)
         quick_push_frame.grid(row=1, rowspan=2, column=5, columnspan=5, sticky=tk.NSEW)
@@ -109,6 +113,12 @@ class MainUI():
         # Populate title frame.
         greeting = tk.Label(master=title_frame, text="Welcome to the Switch Configurator!", font=(self.font, 18))
         greeting.grid()
+        author = tk.Label(master=title_frame, text="Created By: Clayton Cowen", underline=True, foreground="blue")
+        author.grid()
+        font_property = font.Font(author, author.cget("font"))
+        font_property.configure(underline=True)
+        author.configure(font=font_property)  
+        author.bind("<Button-1>", lambda event: webbrowser.open("https://www.linkedin.com/in/clayton-cowen/"))
 
         # Populate loading config frame.
         load_config_title = tk.Label(master=load_switch_config_frame, text="Comprehensive Configure", height=1, font=(self.font, 20))
@@ -123,16 +133,20 @@ class MainUI():
         button_ping.grid(row=6, rowspan=5, column=9, sticky=tk.NSEW)
 
         # Populate login creds frame.
-        creds_title = tk.Label(master=creds_frame, text="Login Credentials", font=(self.font, 18))
+        creds_title = tk.Label(master=self.creds_frame, text="Login Credentials", font=(self.font, 18))
         creds_title.grid(row=0, column=0, sticky=tk.NSEW)
-        username_label = tk.Label(master=creds_frame, text="Username:")
+        add_cred_button = tk.Button(master=self.creds_frame, text="Add Creds", foreground="black", background="white", command=self.add_creds_callback)
+        add_cred_button.grid(row=5, column=0, columnspan=1, sticky=tk.W)
+        username_label = tk.Label(master=self.creds_frame, text="Username:")
         username_label.grid(row=5, column=3, sticky=tk.NSEW)
-        self.username_entry = tk.Entry(master=creds_frame, width=10)
-        self.username_entry.grid(row=5, column=4, sticky=tk.NSEW)
-        password_label = tk.Label(master=creds_frame, text="Password:")
+        username_entry = tk.Entry(master=self.creds_frame, width=10)
+        username_entry.grid(row=5, column=4, sticky=tk.NSEW)
+        self.username_entrys.append(username_entry)     # Append username field to list.
+        password_label = tk.Label(master=self.creds_frame, text="Password:")
         password_label.grid(row=5, column=5, sticky=tk.NSEW)
-        self.password_entry = tk.Entry(master=creds_frame, show="*", width=10)
-        self.password_entry.grid(row=5, column=6, sticky=tk.NSEW)
+        password_entry = tk.Entry(master=self.creds_frame, show="*", width=10)
+        password_entry.grid(row=5, column=6, sticky=tk.NSEW)
+        self.password_entrys.append(password_entry)     # Append password field to list.
 
         # Populate console frame.
         self.list = tk.Listbox(master=console_frame, background="black", foreground="green", highlightcolor="green")
@@ -150,10 +164,64 @@ class MainUI():
                     self.text_box.insert(tk.END, lines.pop(0))
                 
                 # Check length of cache again for username.
-                if len(lines) > 0:
-                    self.username_entry.insert(0, lines.pop(0).strip())
+                while len(lines) > 0:
+                    # Use the first entry box initially.
+                    if len(self.username_entrys[0].get()) > 0:
+                        # Create and place new entry boxes.
+                        username_label = tk.Label(master=self.creds_frame, text="Username:")
+                        username_label.grid(row=len(self.username_entrys) + 5, column=3, sticky=tk.NSEW)
+                        new_username_entry = tk.Entry(master=self.creds_frame, width=10)
+                        new_username_entry.grid(row=len(self.username_entrys) + 5, column=4, sticky=tk.NSEW)
+                        password_label = tk.Label(master=self.creds_frame, text="Password:")
+                        password_label.grid(row=len(self.username_entrys) + 5, column=5, sticky=tk.NSEW)
+                        new_password_entry = tk.Entry(master=self.creds_frame, show="*", width=10)
+                        new_password_entry.grid(row=len(self.username_entrys) + 5, column=6, sticky=tk.NSEW)
+                        # Fill new entry box.
+                        new_username_entry.insert(0, lines.pop(0).strip())
+                        # Append entry boxes to list.
+                        self.username_entrys.append(new_username_entry)
+                        self.password_entrys.append(new_password_entry)
+                    else:
+                        # Fill new entry box.
+                        username_entry.insert(0, lines.pop(0).strip())
         except Exception:
             self.logger.error("Unable to read cache file. It must be corrupted.")
+
+    def add_creds_callback(self) -> None:
+        """
+        This function is triggered everytime the Add Creds button is pressed. It adds new username and password boxes.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Check if we have created more than 5 different users.
+        if len(self.username_entrys) < 5:
+            # Create and place new entry boxes.
+            username_label = tk.Label(master=self.creds_frame, text="Username:")
+            username_label.grid(row=len(self.username_entrys) + 5, column=3, sticky=tk.NSEW)
+            new_username_entry = tk.Entry(master=self.creds_frame, width=10)
+            new_username_entry.grid(row=len(self.username_entrys) + 5, column=4, sticky=tk.NSEW)
+            password_label = tk.Label(master=self.creds_frame, text="Password:")
+            password_label.grid(row=len(self.username_entrys) + 5, column=5, sticky=tk.NSEW)
+            new_password_entry = tk.Entry(master=self.creds_frame, show="*", width=10)
+            new_password_entry.grid(row=len(self.username_entrys) + 5, column=6, sticky=tk.NSEW)
+
+            # Append entry boxes to list.
+            self.username_entrys.append(new_username_entry)
+            self.password_entrys.append(new_password_entry)
+
+            # Print log.
+            self.logger.info(f"Added credential box {len(self.username_entrys)}")
+        else:
+            # Print log.
+            self.logger.warning("No more credential boxes are allowed, too many can be inefficient. Consider configuring your switches for a RADIUS/AUTH server.")
+            # Show messagebox.
+            messagebox.showwarning(title="Warning", message="No more credential boxes are allowed, too many can be inefficient. Consider configuring your switches for a RADIUS/AUTH server.")
 
     def auto_discover_switches(self) -> None:
         """
@@ -169,16 +237,26 @@ class MainUI():
             Nothing
         """
         # Check if a password has been entered.
-        if len(self.password_entry.get()) > 0:
+        if any(len(entry.get()) > 0 for entry in self.username_entrys) and any(len(entry.get()) > 0 for entry in self.password_entrys):
             # Check if auto discover has already been started.
             if not self.already_auto_discovering:
                 # Ask user if they want to export extra info.
                 export_data_prompt = messagebox.askyesno(title="Export Data?", message="Would you like to export the discovered switch data to a CSV file? It may take a longer for discovery to run.")
                 # Clear data lists from discover module.
                 clear_discoveries()
+                # Get username and password lists.
+                usernames = [username.get() for username in self.username_entrys]
+                passwords = [password.get() for password in self.password_entrys]
+                # Remove empty usernames.
+                for i, username in enumerate(usernames):
+                    # Check length.
+                    if len(username) <= 0:
+                        # Remove list item.
+                        usernames.pop(i)
+                        passwords.pop(i)
                 # Get text from textbox.
                 text = self.text_box.get('1.0', tk.END).splitlines()
-                Thread(target=self.auto_discover_back_process, args=(text, self.username_entry.get(), self.password_entry.get(), export_data_prompt)).start()
+                Thread(target=self.auto_discover_back_process, args=(text, usernames, passwords, export_data_prompt)).start()
                 # Set safety toggle.
                 self.already_auto_discovering = True
                 # Print log.
@@ -225,73 +303,101 @@ class MainUI():
                 # Write the final string.
                 file.write(data_string)
 
+            # Open network discovery map.
+            # Create new network map object from pyvis.
+            graph_net = Network(width="1920px", height="1080px", bgcolor='#222222', font_color='white', notebook=True)
+            # Generate a list of node weights depending on how many times their names show up in the export list.
+            # Also generate a list of colors depending on device type.
+            name_weights = []
+            colors = []
+            for device in export_info:
+                # Get the device hostname.
+                hostname = device["hostname"]
+                weight = 0
+                # Loop through export info again and count occurances.
+                for info in export_info:
+                    # Check if the hostname or parent hostname equals the current hostname.
+                    if info["hostname"] == hostname or info["parent_host"] == hostname:
+                        # Add one to weight.
+                        weight += 1
+                # Append weight to weights list.
+                name_weights.append(weight)
+
+                # Check device type and append color.
+                if device["is_wireless_ap"]:
+                    # Orange.
+                    colors.append("#eb6200")
+                elif device["is_switch"]:
+                    # Blue
+                    colors.append("#3300eb")
+                elif device["is_phone"]:
+                    # Yellow
+                    colors.append("#f0e805")
+                else:
+                    # Purple.
+                    colors.append("#9f3dae")
+
+            # Create a lamba function to generate random hex color codes.
+            # gen_rand_hex = lambda: random.randint(0,255)
+            # Add the nodes to the network graph.
+            # graph_net.add_nodes(list(range(len(export_info))),
+            #                 value=name_weights,
+            #                 title=[str(info) for info in export_info],
+            #                 label=[info["hostname"] for info in export_info],
+            #                 color=["#%02X%02X%02X" % (gen_rand_hex(), gen_rand_hex(), gen_rand_hex()) for i in range(len(export_info))])
+            graph_net.add_nodes(list(range(len(export_info))),
+                        value=name_weights,
+                        title=[str(info) for info in export_info],
+                        label=[info["hostname"] for info in export_info],
+                        color=colors)
+
+            # Add the edges/paths to the nodes. This is super ineffficient. 
+            for i, device in enumerate(export_info):
+                # Get current device hostname. Cutoff domain.
+                hostname = device["hostname"].split(".", 1)[0]
+                # Get current device parent.
+                parent_hostname = device["parent_host"]
+                for j, device2 in enumerate(export_info):
+                    # Get search device hostname. Cutoff domain.
+                    search_hostname = device2["hostname"].split(".", 1)[0]
+                    # Check if parent and seach name are the same.
+                    if parent_hostname == search_hostname:
+                        # Add edges based on node names.
+                        graph_net.add_edge(i, j)
+
+            # Turn on settings panel.
+            graph_net.show_buttons()
+            # Export normal graph.
+            graph_net.show("exports/graph.html")
+            # Set new graph options.
+            graph_net.set_options('''
+            const options = {
+                "configure": {
+                    "enabled": true
+                },
+                "layout": {
+                    "hierarchical": {
+                    "enabled": true,
+                    "blockShifting": false,
+                    "edgeMinimization": false,
+                    "parentCentralization": false
+                    }
+                },
+                "physics": {
+                    "hierarchicalRepulsion": {
+                    "centralGravity": 0,
+                    "nodeDistance": 130,
+                    "avoidOverlap": 1
+                    },
+                    "minVelocity": 0.75,
+                    "solver": "hierarchicalRepulsion"
+                }
+            }''')
+            # Export new graph.
+            graph_net.show("exports/hierarchical_graph.html")
+
         # Print log.
         self.logger.info(f"FINISHED! Discovered a total of {len(self.discovery_list)} IPs: {self.discovery_list}")
-
-        # Open network discovery map.
-        # Create new network map object from pyvis.
-        graph_net = Network(width="1920px", height="1080px")
-        # Create a lamba function to generate random hex color codes.
-        gen_rand_hex = lambda: random.randint(0,255)
-        # Generate a list of node weights depending on how many times their names show up in the export list.
-        # Also generate a list of colors depending on device type.
-        name_weights = []
-        colors = []
-        for device in export_info:
-            # Get the device hostname.
-            hostname = device["hostname"]
-            weight = 0
-            # Loop through export info again and count occurances.
-            for info in export_info:
-                # Check if the hostname or parent hostname equals the current hostname.
-                if info["hostname"] == hostname or info["parent_host"] == hostname:
-                    # Add one to weight.
-                    weight += 1
-            # Append weight to weights list.
-            name_weights.append(weight)
-
-            # Check device type and append color.
-            if device["is_wireless_ap"]:
-                # Orange.
-                colors.append("#eb6200")
-            elif device["is_switch"]:
-                # Blue
-                colors.append("#3300eb")
-            elif device["is_phone"]:
-                # Yellow
-                colors.append("#f0e805")
-            else:
-                # Purple.
-                colors.append("#9f3dae")
-
-        # Add the nodes to the network graph.
-        # graph_net.add_nodes(list(range(len(export_info))),
-        #                 value=name_weights,
-        #                 title=[str(info) for info in export_info],
-        #                 label=[info["hostname"] for info in export_info],
-        #                 color=["#%02X%02X%02X" % (gen_rand_hex(), gen_rand_hex(), gen_rand_hex()) for i in range(len(export_info))])
-        graph_net.add_nodes(list(range(len(export_info))),
-                    value=name_weights,
-                    title=[str(info) for info in export_info],
-                    label=[info["hostname"] for info in export_info],
-                    color=colors)
-
-        # Add the edges/paths to the nodes. This is super ineffficient. 
-        for i, device in enumerate(export_info):
-            # Get current device hostname. Cutoff domain.
-            hostname = device["hostname"].split(".", 1)[0]
-            # Get current device parent.
-            parent_hostname = device["parent_host"]
-            for j, device2 in enumerate(export_info):
-                # Get search device hostname. Cutoff domain.
-                search_hostname = device2["hostname"].split(".", 1)[0]
-                # Check if parent and seach name are the same.
-                if parent_hostname == search_hostname:
-                    # Add edges based on node names.
-                    graph_net.add_edge(i, j)
-
-        # Show graph.
-        graph_net.show("exports/graph.html")
 
         # Reset safety toggle.
         self.already_auto_discovering = False
@@ -313,7 +419,7 @@ class MainUI():
         self.logger.info("\n---------------------------------------------------------\nPulling switch configs now...\n---------------------------------------------------------")
 
         # Check to see if username and password creds have been given. Don't open config window unless they are present.
-        if (self.username_entry.get() != "" and self.password_entry.get() != ""):
+        if any(len(entry.get()) > 0 for entry in self.username_entrys) and any(len(entry.get()) > 0 for entry in self.password_entrys):
             # Get text from textbox.
             text = self.text_box.get('1.0', tk.END).splitlines()
             # Clear existing ips from list.
@@ -331,12 +437,23 @@ class MainUI():
                 if self.config_window.get_is_window_open() and self.config_window.get_is_window_initialized():
                     # Close existing window.
                     self.config_window.close_window()
-            
+
+                # Get username and password lists.
+                usernames = [username.get() for username in self.username_entrys]
+                passwords = [password.get() for password in self.password_entrys]
+                # Remove empty usernames.
+                for i, username in enumerate(usernames):
+                    # Check length.
+                    if len(username) <= 0:
+                        # Remove list item.
+                        usernames.pop(i)
+                        passwords.pop(i)
                 # Open configure window and give it the switch ip list, username, and password.
-                self.config_window.run(self.ip_list, self.username_entry.get(), self.password_entry.get())
+                self.config_window.run(self.ip_list, usernames, passwords)
         else:
             # Print log info.
             self.logger.warning("You must enter username and password credentials. Otherwise, I can't log into the switch!")
+            messagebox.showwarning(title="Warning", message="You must enter username and password credentials.")
 
     def mass_ping_button_callback(self) -> None:
         """
@@ -387,6 +504,9 @@ class MainUI():
             for i in range(len(self.discovery_list)):
                 self.text_box.insert(tk.END, self.discovery_list.pop(0) + "\n")
 
+            # Show messagebox stating discovery is complete.
+            messagebox.showinfo(title="Discovery Finished", message="Discovery is finished. All discovered IPs have been put in the IP textbox. If exports were enabled, they have been saved to the local directory of this app.")
+
             # Clear list just to be sure.
             self.discovery_list.clear()
 
@@ -417,9 +537,16 @@ class MainUI():
         # Clear file.
         self.cache_file.truncate(0)
         self.cache_file.seek(0)
-        # Store contents of switch list and username in cache file.
+        # Store contents of username in cache file.
         switch_ips.insert(0, str(len(switch_ips)))
-        switch_ips.append(self.username_entry.get())
+        for user_entry in self.username_entrys:
+            # Get value.
+            username = user_entry.get()
+            # Make sure value isn't empty.
+            if len(username) > 0:
+                # Append value.
+                switch_ips.append(username)
+        # Store contents of switch list in cache file.
         for line in switch_ips:
             # Only write if line isn't empty.
             if len(line) > 0:

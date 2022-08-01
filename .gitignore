@@ -27,6 +27,7 @@ share/python-wheels/
 MANIFEST
 
 # Exclude text files, log files, and cache files.
+*.html
 *.cache
 *.log
 *.csv
