@@ -18,7 +18,7 @@ If your wanting to make code changes or just want the latest build, you'll need 
       - Install the pip environment ```pipenv install```
       - Enter the pip environment ```pipenv shell```
   3) Run [PyInstaller](https://pyinstaller.org/en/stable/) using the command-line or by running the included script.
-      - Click on the advanced drop-down and import the pyinstaller.json file located in this project's root directory. This will import all the necessary settings for           compiling.
+      - Click on the settings drop-down and import the pyinstaller.json file located in this project's root directory. This will import all the necessary settings for           compiling.
       - Select whether you want to build the program to onefile or onefolder and choose an output directory.
       - Click "convert .py to .exe"
       - Once the program has finished compiling, copy the logging_config.yaml file into the output directory.
