@@ -1,4 +1,3 @@
-from os import stat
 import re
 import logging
 import time
@@ -179,6 +178,8 @@ class ConfigureUI:
         show_int_err_button.grid(row=0, column=3, columnspan=1, sticky=tk.NSEW)
         clr_int_err_button = tk.Button(master=self.command_button_frame,  text="Clear Interface Errors", foreground="black", background="white", command=self.clear_interface_errors_callback)
         clr_int_err_button.grid(row=0, column=4, columnspan=1, sticky=tk.NSEW)
+        history_button = tk.Button(master=self.command_button_frame,  text="History", foreground="black", background="white", command=self.history_callback)
+        history_button.grid(row=0, column=5, columnspan=1, sticky=tk.NSEW)
         cdp_neighbors_button = tk.Button(master=self.command_button_frame,  text="CDP Neighbors", foreground="black", background="white", command=self.cdp_neighbors_callback)
         cdp_neighbors_button.grid(row=1, column=0, columnspan=1, sticky=tk.NSEW)
         etherchannel_button = tk.Button(master=self.command_button_frame,  text="Etherchannel Detail", foreground="black", background="white", command=self.etherchannel_detail_callback)
@@ -187,8 +188,10 @@ class ConfigureUI:
         macaddr_button.grid(row=1, column=2, columnspan=1, sticky=tk.NSEW)
         tranceiver_button = tk.Button(master=self.command_button_frame,  text="Transceiver Detail", foreground="black", background="white", command=self.transceiver_detail_callback)
         tranceiver_button.grid(row=1, column=3, columnspan=1, sticky=tk.NSEW)
+        ssh_button = tk.Button(master=self.command_button_frame,  text="Show SSH", foreground="black", background="white", command=self.show_ssh_connections_callback)
+        ssh_button.grid(row=1, column=4, columnspan=1, sticky=tk.NSEW)
         console_button = tk.Button(master=self.command_button_frame,  text="Console", foreground="black", background="white", command=self.console_callback)
-        console_button.grid(row=1, column=4, columnspan=1, sticky=tk.NSEW)
+        console_button.grid(row=1, column=5, columnspan=1, sticky=tk.NSEW)
 
         # Populate interface configuration frame.
         desc_validate = self.interface_frame.register(self.description_box_validate)
@@ -574,6 +577,38 @@ class ConfigureUI:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
 
+    def history_callback(self) -> None:
+        """
+        This method is called evertime the History button is pressed.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Sending button command 'show history' to {device['host']}")
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Run command
+            output = connection.send_command("show history")
+            # Open a new popup window with the output text.
+            text_popup(output, x_grid_size=11, y_grid_size=10)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
+
     def cdp_neighbors_callback(self) -> None:
         """
         This method is called everytime the CDP Neighbors button is pressed.
@@ -701,14 +736,51 @@ class ConfigureUI:
 
         # Send command to switch and open a message box with the command output.
         if connection is not None and connection.is_alive():
-            # Run command
-            output = connection.send_command("show interfaces transceiver detail")
-            # Open a new popup window with the output text.
-            text_popup(output, x_grid_size=11, y_grid_size=10)
+            # Open a window asking for the user to select an interface from the dropdown menu.
+            self.popup = ListPopup()
+            selection = self.popup.open([interface["name"] for interface in self.interfaces_list], prompt="Select an interface to display transceiver data for:")
+            # Check if selection is valid.
+            if selection is not None:
+                # Run command
+                output = connection.send_command(f"show interface {selection} transceiver detail")
+                # Open a new popup window with the output text.
+                text_popup(output, x_grid_size=11, y_grid_size=10)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
 
+    def show_ssh_connections_callback(self) -> None:
+        """
+        This method is called everytime the Show SSH button is pressed.
+
+        Parameters:
+        -----------
+            None
+
+        Returns:
+        --------
+            Nothing
+        """
+        # Get the current index of the device selected from the dropdown menu.
+        current_device_index = self.drop_down.current()
+        # Get device.
+        device = self.devices[current_device_index]
+        # Get connection of device.
+        connection = self.ssh_connections[current_device_index]
+
+        # Print log.
+        self.logger.info(f"Sending button command 'show ip ssh' to {device['host']}")
+
+        # Send command to switch and open a message box with the command output.
+        if connection is not None and connection.is_alive():
+            # Run command
+            output1 = connection.send_command("show ip ssh")
+            output2 = connection.send_command("show ssh")
+            # Open a new popup window with the output text.
+            text_popup(output1 + "\n\n\n" + output2, x_grid_size=11, y_grid_size=10)
+        else:
+            # Display message box saying the command was unable to complete.
+            messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
 
     def port_channel_callback(self) -> None:
         """

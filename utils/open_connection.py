@@ -4,7 +4,6 @@ import logging
 from functools import partial
 from multiprocessing.pool import ThreadPool
 import string
-import time
 from tkinter import messagebox
 import netmiko
 from netmiko.exceptions import NetmikoAuthenticationException, NetmikoTimeoutException
@@ -61,6 +60,8 @@ def ssh_autodetect_info(usernames, passwords, ip_addr, result_info=None) -> str:
             except ValueError:
                 logger.error(f"Unable to find switch prompt for {ip_addr}")
 
+            # Close connection.
+            ssh_connection.disconnect()
             # Stop looping through for loop.
             break
         except NetmikoAuthenticationException:
@@ -70,7 +71,7 @@ def ssh_autodetect_info(usernames, passwords, ip_addr, result_info=None) -> str:
             remote_device["ip_address"] = ip_addr
             remote_device["host"] = "Unable_to_Authenticate"
             # Print log
-            logger.warning(f"Failed to login to device {ip_addr} while discovering. Trying next username and password.")
+            logger.warning(f"Failed to login to device {ip_addr}. Trying next available username and password.")
         except NetmikoTimeoutException:
             # Print log info.
             logger.error(f"Something happened while trying to communicate with device {ip_addr}")
@@ -120,7 +121,7 @@ def ssh_autodetect_switchlist_info(usernames, passwords, ip_list, device_list) -
                 device_list.append(switch)
         else:
             # Print log.
-            logger.warning("Can't authenticate with the given credentials. Please enter the corrent username and password.")
+            logger.warning("Can't authenticate with the given credentials. Please enter the correct username and password.")
             # Append none to device list.
             device_list.append(None)
     else:
@@ -274,8 +275,8 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
                         # Loop through each config line for the interface and get data.
                         for data in interface_data:
                             # Get Description info.
-                            if "description" in data and description == "":
-                                # Remove unneeded keywork from data.
+                            if "description" in data and description == "" and "macro" not in data:
+                                # Remove unneeded keyword from data.
                                 data = data.replace("description", "")
                                 # Remove trailing and leading spaces and set description equal to new data.
                                 description = data.strip()
@@ -383,7 +384,7 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
                         # Loop through each config line for the vlan and get data.
                         for data in vlan_data:
                             # Get Description info.
-                            if "description" in data and description == "":
+                            if "description" in data and description == "" and "macro" not in data:
                                 # Remove unneeded keyword from data.
                                 data = data.replace("description", "")
                                 # Remove trailing and leading spaces and set description equal to new data.

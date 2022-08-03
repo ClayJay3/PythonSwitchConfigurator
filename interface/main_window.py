@@ -1,15 +1,12 @@
-import copy
 import logging
 import os
 import sys
-import random
 import webbrowser
 import tkinter as tk
 from threading import Thread
 from tkinter import messagebox
 from tkinter import font
 
-from numpy import delete
 from pyvis.network import Network
 
 from interface import configure_window

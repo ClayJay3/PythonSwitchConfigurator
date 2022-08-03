@@ -80,6 +80,10 @@
   {
    "optionDest": "pathex",
    "value": "C:/Users/clayton.cowen/Documents/PythonSwitchConfiguratorProject/PythonSwitchConfigurator/utils"
+  },
+  {
+   "optionDest": "collect_all",
+   "value": "pyvis"
   }
  ],
  "nonPyinstallerOptions": {

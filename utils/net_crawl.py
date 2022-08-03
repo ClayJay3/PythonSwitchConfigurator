@@ -4,10 +4,8 @@ from functools import partial
 import re
 import logging
 from multiprocessing.pool import ThreadPool
-from unittest import result
 from netmiko import NetmikoAuthenticationException
 from netmiko.ssh_dispatcher import ConnectHandler
-from numpy import number
 
 # Define Constants.
 MAX_DISCOVERY_THREADS = 100
