@@ -105,7 +105,7 @@ def get_cdp_neighbors_info(usernames, passwords, export_info, ip_addr) -> Tuple(
             # Get the IP and hostname info.
             #######################################################################
             # Run cdp command to get relavant info.
-            output = ssh_connection.send_command("show cdp neighbors detail | sec Device|Management|Capabilities|Version")
+            output = ssh_connection.send_command("show cdp neighbors detail | sec Device|Management|Capabilities|Version|Interface")
 
             # Parse output, split string based on the Device keyword.
             device_cdps = re.split("Device", output)
@@ -118,6 +118,7 @@ def get_cdp_neighbors_info(usernames, passwords, export_info, ip_addr) -> Tuple(
                 device_info = {}
                 hostname = "NULL"
                 addr = "NULL"
+                local_trunk_interface = "NULL"
                 software_name = "NULL"
                 version = "NULL"
                 platform = "NULL"
@@ -126,15 +127,17 @@ def get_cdp_neighbors_info(usernames, passwords, export_info, ip_addr) -> Tuple(
                 is_phone = False
                 parent_addr = "NULL"
                 parent_host = "NULL"
+                parent_trunk_interface = "NULL"
                 # Loop through each line and find the device info.
                 for line in info:
                     # Find device IP address.
                     if "IP address:" in line:
                         # Replace keyword.
-                        addr = line.replace("IP address: ", "")
+                        addr = line.replace("IP address: ", "").strip()
                     # Find device type:
                     if "AIR" in line or "Trans-Bridge" in line:
                         is_wireless_ap = True
+                        is_switch = False
                     # Check if export info is toggled on.
                     if export_info and len(addr) > 0 and not is_wireless_ap:
                         # Find device hostname.
@@ -143,7 +146,7 @@ def get_cdp_neighbors_info(usernames, passwords, export_info, ip_addr) -> Tuple(
                             line = line.replace("ID:", "")
                             # Remove whitespace and store data.
                             hostname = line.strip()
-                            
+
                         # Find device software version info.
                         if "Version :" not in line and "Version" in line:
                             # Split line up by commas.
@@ -168,6 +171,20 @@ def get_cdp_neighbors_info(usernames, passwords, export_info, ip_addr) -> Tuple(
                             # Remove whitespace and store.
                             platform = line.strip()
 
+                        # Find the local trunk interface and parent interface.
+                        if "Interface:" in line:
+                            # Split line by comma.
+                            line = re.split(",", line)
+                            # Get and store the local and remote interface.
+                            remote_interface = line[0]
+                            local_interface = line[1]
+                            # Remove unessesary keyword arguments.
+                            remote_interface = remote_interface.replace("Interface:", "")
+                            local_interface = local_interface.replace("Port ID (outgoing port):", "")
+                            # Remove whitespace and store.
+                            local_trunk_interface = local_interface.strip()
+                            parent_trunk_interface = remote_interface.strip()
+
                 # If both the software name and version were unable to be found assume device is not a switch, but a phone.
                 if export_info:
                     if software_name == "NULL" and version == "NULL":
@@ -182,7 +199,8 @@ def get_cdp_neighbors_info(usernames, passwords, export_info, ip_addr) -> Tuple(
 
                 # Add info to dictionary.
                 device_info["hostname"] = hostname
-                device_info["ip_addr"] = addr.strip()
+                device_info["ip_addr"] = addr
+                device_info["local_trunk_interface"] = local_trunk_interface
                 device_info["software_name"] = software_name
                 device_info["version"] = version
                 device_info["platform"] = platform
@@ -191,10 +209,11 @@ def get_cdp_neighbors_info(usernames, passwords, export_info, ip_addr) -> Tuple(
                 device_info["is_phone"] = is_phone
                 device_info["parent_addr"] = parent_addr
                 device_info["parent_host"] = parent_host
+                device_info["parent_trunk_interface"] = parent_trunk_interface
 
                 # Remove leading whitespace and append final ip to the cdp info list.
-                if addr != "NULL" and not is_wireless_ap:
-                    cdp_neighbors_result_ips.append(addr.strip())
+                if addr != "NULL" and is_switch:
+                    cdp_neighbors_result_ips.append(addr)
 
                 # Append device to the device infos list.
                 if export_info and device_info not in device_infos:
