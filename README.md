@@ -1,5 +1,10 @@
 # PythonSwitchConfigurator
 It's universal, but probably only works for cisco switches. This project is an attempt to create a convenient GUI for the simple configuration of network switches. It can also export network maps through the auto discover feature.
+![main](https://user-images.githubusercontent.com/26121134/183433953-9598a36e-403a-4e54-bbb5-ea6343cb4dcf.PNG)
+![config](https://user-images.githubusercontent.com/26121134/183433978-dff9b10a-c5df-4524-9f28-439378d851be.png)
+![map](https://user-images.githubusercontent.com/26121134/183434008-aa262f1b-09c2-4aa7-9dbd-25c03481e8c9.PNG)
+![mapinfo](https://user-images.githubusercontent.com/26121134/183434021-c08c2dfa-0dbc-47bc-a8b3-e8348ee57afe.png)
+
 ```diff
 -RUN WITH CAUTION. YOU CAN EASILY MESS UP A SWITCH'S CONFIG WITH THIS PROGRAM.-
 ```
