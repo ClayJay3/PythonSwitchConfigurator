@@ -172,13 +172,13 @@ class MainUI():
                     if len(self.username_entrys[0].get()) > 0:
                         # Create and place new entry boxes.
                         username_label = tk.Label(master=self.creds_frame, text="Username:")
-                        username_label.grid(row=len(self.username_entrys) + 5, column=3, sticky=tk.NSEW)
+                        username_label.grid(row=len(self.username_entrys) + 5, column=5, sticky=tk.NSEW)
                         new_username_entry = tk.Entry(master=self.creds_frame, width=10)
-                        new_username_entry.grid(row=len(self.username_entrys) + 5, column=4, sticky=tk.NSEW)
+                        new_username_entry.grid(row=len(self.username_entrys) + 5, column=6, sticky=tk.NSEW)
                         password_label = tk.Label(master=self.creds_frame, text="Password:")
-                        password_label.grid(row=len(self.username_entrys) + 5, column=5, sticky=tk.NSEW)
+                        password_label.grid(row=len(self.username_entrys) + 5, column=7, sticky=tk.NSEW)
                         new_password_entry = tk.Entry(master=self.creds_frame, show="*", width=10)
-                        new_password_entry.grid(row=len(self.username_entrys) + 5, column=6, sticky=tk.NSEW)
+                        new_password_entry.grid(row=len(self.username_entrys) + 5, column=8, sticky=tk.NSEW)
                         # Fill new entry box.
                         new_username_entry.insert(0, lines.pop(0).strip())
                         # Append entry boxes to list.
@@ -280,6 +280,13 @@ class MainUI():
                 # Get username and password lists.
                 usernames = [username.get() for username in self.username_entrys]
                 passwords = [password.get() for password in self.password_entrys]
+                # Remove empty passwords.
+                for i, password in enumerate(passwords):
+                    # Check length.
+                    if len(password) <= 0:
+                        # Remove list item.
+                        usernames.pop(i)
+                        passwords.pop(i)
                 # Get text from textbox.
                 text = self.text_box.get('1.0', tk.END).splitlines()
 
@@ -537,6 +544,13 @@ class MainUI():
                 # Get username and password lists.
                 usernames = [username.get() for username in self.username_entrys]
                 passwords = [password.get() for password in self.password_entrys]
+                # Remove empty passwords.
+                for i, password in enumerate(passwords):
+                    # Check length.
+                    if len(password) <= 0:
+                        # Remove list item.
+                        usernames.pop(i)
+                        passwords.pop(i)
                 # Get secret from user if they entered it.
                 secret = ""
                 if self.secret_entry is not None:

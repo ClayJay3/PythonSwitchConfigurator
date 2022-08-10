@@ -46,11 +46,15 @@ def cdp_auto_discover(ip_list, username, password, secret, enable_telnet=False, 
             # Loop through export info and license info.
             for export_data in export_info_list:
                 # Add empty license info in case nothing matches.
+                export_data["license_state"] = "NULL"
+                export_data["license_expire_period"] = "NULL"
                 export_data["license_info"] = "NULL"
                 for license_data in license_info:
                     # Check if the license hostname appears in export hostname. If so, then append license data to dictionary.
                     if license_data["ip_addr"] == export_data["ip_addr"]:
-                        export_data["license_info"] = license_data["license_info"]
+                        export_data["license_state"] = license_data["license_state"]
+                        export_data["license_expire_period"] = license_data["expire_period"]
+                        export_data["license_info"] = license_data["raw_output"]
 
             # Clear license_info arrray.
             license_info.clear()
@@ -120,7 +124,7 @@ def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_i
                 secret = password
 
             # Create device dictionary.
-            remote_device = {"device_type": "cisco_ios_telnet", "host": ip_addr, "username": username, "password": password, "secret": secret}
+            remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password, "secret": secret}
             # If the device is not a switch codemiko will crash.
             # Attempt to open SSH connection first, then Telnet.
             try:
@@ -158,18 +162,89 @@ def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_i
             if ssh_connection is not None and ssh_connection.is_alive():
                 # Get parent hostname.
                 prompt = ssh_connection.find_prompt()[:-1]
+
+                # Create base dictionary.
+                license_dict = {"ip_addr": ip_addr, "license_state": "NULL", "expire_period": "NULL", "raw_output": "NULL"}
+                
                 # Get license information about parent switch.
-                license_output = ssh_connection.send_command("show license")
+                license_output = ssh_connection.send_command("show license | include Feature|Period|State")
                 # Check if the command output failed.
                 if len(license_output.splitlines()) <= 3:
                     # Run different show license command.
-                    license_output = ssh_connection.send_command("show license all")
-                # Check if it failed again, and run different command.
-                if len(license_output.splitlines()) <= 3:
-                    # Run different show license command.
-                    license_output = ssh_connection.send_command("show license right-to-use")
+                    license_output = ssh_connection.send_command("show license all | include Status:")
+                    # Check if it failed again, and run different command.
+                    if len(license_output.splitlines()) <= 3:
+                        # Run different show license command.
+                        license_output = ssh_connection.send_command("show license right-to-use")
+                        # Check if the command ran successfully.
+                        if len(license_output) > 3:
+                            # Store raw license output.
+                            license_dict["raw_output"] = license_output
+
+                            # Parse output.
+                            # Split output by newlines. Cutoff first two.
+                            license_output = license_output.splitlines()[2:]
+                            # Loop through license slots.
+                            names = ""
+                            periods = ""
+                            for line in license_output:
+                                # Check if we hit the end of the list.
+                                if "--------" not in line:
+                                    # Split line sections up by spaces.
+                                    info = re.split(" +", line)
+                                    # Add data to var.
+                                    names += info[1] + f"({info[2]})" + " | "
+                                    periods += info[-1] + " | "
+                                else:
+                                    # Stop looping.
+                                    break
+                            # Append data to license dictionary.
+                            license_dict["license_state"] = names
+                            license_dict["expire_period"] = periods
+
+                    else:
+                        # Store raw license output.
+                        license_dict["raw_output"] = license_output
+
+                        # Parse ouput.
+                        # Split output by newlines.
+                        license_output = license_output.splitlines()
+                        # The first line should be the register status.
+                        license_dict["license_state"] = license_output[0]
+                        # The second value should be the expiration time.
+                        license_dict["expire_period"] = license_output[1]
+                else:
+                    # Store raw license output.
+                    license_dict["raw_output"] = license_output
+
+                    # Parse output.
+                    # Split output by keyword INDEX.
+                    license_output = license_output.split("Index")
+                    # Use the section with more info.
+                    license_output = license_output[1].splitlines() if len(license_output[1].splitlines()) >= 3 else license_output[2].splitlines()
+                    # Check for expire status.
+                    for line in license_output:
+                        # Get license period.
+                        if "Period left" in line:
+                            # Remove unneccesary keywords and remove leading and trailing whitespace.
+                            line = line.replace("Period left:", "").strip()
+                            # Replace commas and tabs with dashes and spaces.
+                            line = line.replace(",", " -")
+                            line = line.replace("\t", " ")
+                            # Append info to license dictionary.
+                            license_dict["expire_period"] = line
+                        # Get license state.
+                        if "License State" in line:
+                            # Remove uneccesary keywords and remove leading and trailing whitespace.
+                            line = line.replace("License State:", "").strip()
+                            # Replace commas and tabs with dashes and spaces.
+                            line = line.replace(",", " -")
+                            line = line.replace("\t", " ")
+                            # Append info the license dictionary.
+                            license_dict["license_state"] = line
+
                 # Append information to the list.
-                license_info.append({"ip_addr": ip_addr, "license_info": license_output})
+                license_info.append(license_dict)
 
                 #######################################################################
                 # Get the IP and hostname info.
