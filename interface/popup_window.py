@@ -4,12 +4,13 @@ from tkinter import ttk
 
 GRID_SIZE = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
-def text_popup(text, x_grid_size = 10, y_grid_size = 10) -> None:
+def text_popup(title, text, x_grid_size = 10, y_grid_size = 10) -> None:
     """
     This function opens a new read-only text editor window. This window simply displays the given text.
 
     Parameters:
     -----------
+        title - The text to be displayed in the window title.
         text - The text to be displayed in the new window.
         x_grid_size - The size of the horizontal grid space.
         y_grid_size - The size of the vertical grid space.
@@ -21,7 +22,7 @@ def text_popup(text, x_grid_size = 10, y_grid_size = 10) -> None:
     # Create new tk window.
     popup_window = tk.Tk()
     # Set window title.
-    popup_window.title("Command Output")
+    popup_window.title(title)
     # Set window to the front of others.
     popup_window.attributes("-topmost", True)
     popup_window.update()

@@ -6,13 +6,13 @@ from multiprocessing.pool import ThreadPool
 import string
 from tkinter import messagebox
 import netmiko
-from netmiko.exceptions import NetmikoAuthenticationException, NetmikoTimeoutException
+from netmiko.exceptions import NetmikoAuthenticationException, NetmikoTimeoutException, ReadTimeout
 from netmiko.ssh_dispatcher import ConnectHandler
 
 # Create constants.
 SSH_THREADS = 100
 
-def ssh_autodetect_info(usernames, passwords, ip_addr, result_info=None) -> str:
+def ssh_autodetect_info(usernames, passwords, secret, ip_addr, result_info=None) -> str:
     """
     This method will attempt to autodetect the switch device info using netmiko's
     ssh_autodetect
@@ -31,24 +31,52 @@ def ssh_autodetect_info(usernames, passwords, ip_addr, result_info=None) -> str:
     """
     # Create instance variables and objects.
     logger = logging.getLogger(__name__)
+    ssh_connection = None
 
     # Try each username.
     for username, password in zip(usernames, passwords):
+        # If secret is empty use normal password.
+        if len(secret) <= 0:
+            secret = password
+
         # Create device dictionary.
-        remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password}
+        remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password, "secret": secret}
         # If the device is not a switch codemiko will crash.
+        # Attempt to open SSH connection first, then Telnet.
         try:
             # Print logging info.
             logger.info(f"Autodetecting model and opening connection for {ip_addr}")
             # Open new ssh connection with switch.
             ssh_connection = ConnectHandler(**remote_device)
-            # Print logging info.
-            logger.info("Waiting for command prompt...")
-
-            #######################################################################
-            # Get the IP and hostname info.
-            #######################################################################
+        except NetmikoTimeoutException:
+            # Print log.
+            logger.warning(f"Unable to connect to device {ip_addr} with SSH. Trying telnet...")
             try:
+                # Change device type to telnet.
+                remote_device["device_type"] = "cisco_ios_telnet"
+                # Open new ssh connection with switch.
+                ssh_connection = ConnectHandler(**remote_device)
+            except NetmikoAuthenticationException:
+                # Set default value.
+                remote_device["ip_address"] = ip_addr
+                remote_device["host"] = "Unable_to_Authenticate"
+                # Print log
+                logger.warning(f"Failed to login to device {ip_addr}. Trying next available username and password.")
+        except NetmikoAuthenticationException:
+            # Set default value.
+            remote_device["ip_address"] = ip_addr
+            remote_device["host"] = "Unable_to_Authenticate"
+            # Print log
+            logger.warning(f"Failed to login to device {ip_addr}. Trying next available username and password.")
+       
+        #######################################################################
+        # Get the IP and hostname info.
+        #######################################################################
+        # Check if connection was successful.
+        if ssh_connection is not None and ssh_connection.is_alive():
+            try:
+                # Print logging info.
+                logger.info("Waiting for command prompt...")
                 # Look for switch prompt.
                 prompt = ssh_connection.find_prompt()
                 # Print prompt.
@@ -57,31 +85,19 @@ def ssh_autodetect_info(usernames, passwords, ip_addr, result_info=None) -> str:
                 remote_device["host"] = prompt[:-1]
                 # Store known ip address.
                 remote_device["ip_address"] = ip_addr
+                # Close connection.
+                ssh_connection.disconnect()
+                # Stop looping through for loop.
+                break
             except ValueError:
                 logger.error(f"Unable to find switch prompt for {ip_addr}")
 
-            # Close connection.
-            ssh_connection.disconnect()
-            # Stop looping through for loop.
-            break
-        except NetmikoAuthenticationException:
-            # Print log info.
-            logger.error(f"Unable to authenticate with device {ip_addr}")
-            # Set default value.
-            remote_device["ip_address"] = ip_addr
-            remote_device["host"] = "Unable_to_Authenticate"
-            # Print log
-            logger.warning(f"Failed to login to device {ip_addr}. Trying next available username and password.")
-        except NetmikoTimeoutException:
-            # Print log info.
-            logger.error(f"Something happened while trying to communicate with device {ip_addr}")
-            # Set default value.
-            remote_device["ip_address"] = ip_addr
-            remote_device["host"] = "Unable_to_Authenticate"
+    # Store final device dict in result_info.
+    result_info = remote_device
 
-    return remote_device
+    return result_info
 
-def ssh_autodetect_switchlist_info(usernames, passwords, ip_list, device_list) -> None:
+def ssh_autodetect_switchlist_info(usernames, passwords, secret, ip_list, device_list) -> None:
     """
     This method will attempt to autodetect a list of switches device info using netmiko's
     ssh_autodetect.
@@ -104,14 +120,14 @@ def ssh_autodetect_switchlist_info(usernames, passwords, ip_list, device_list) -
     # Check if the ip list actually contains something.
     if len(ip_list) > 0:
         # Try to auth with one switch first.
-        first_switch = ssh_autodetect_info(usernames, passwords, ip_list.pop(0))
+        first_switch = ssh_autodetect_info(usernames, passwords, secret, ip_list.pop(0))
         # Check if auth was successful.
         if first_switch["host"] != "Unable_to_Authenticate":
             # Append first device to device list.
             device_list.append(first_switch)
 
             # Loop through each line and try to ping it in a new thread.
-            devices = thread_pool.map_async(partial(ssh_autodetect_info, usernames, passwords), ip_list)
+            devices = thread_pool.map_async(partial(ssh_autodetect_info, usernames, passwords, secret), ip_list)
             # Wait for pool threads to finish.
             thread_pool.close()
             thread_pool.join()
@@ -128,13 +144,14 @@ def ssh_autodetect_switchlist_info(usernames, passwords, ip_list, device_list) -
         # Print log.
         logger.warning("No IPs were givin. Can't open any SSH sessions to autodetect.")
 
-def ssh(device) -> netmiko.ssh_dispatcher:
+def ssh_telnet(device, store_config_info=False) -> netmiko.ssh_dispatcher:
     """
     This method uses the given ip to open a new ssh connetion.
 
     Parameters:
     -----------
         device - A dictionary object containing the required keys and values to connect to the device.
+        store_config_info - A boolean value that determines if config info is gathered and stored in the given dictionary.
 
     Returns:
     --------
@@ -142,39 +159,75 @@ def ssh(device) -> netmiko.ssh_dispatcher:
     """
     # Create instance variables and objects.
     logger = logging.getLogger(__name__)
-    connection = None
+    ssh_connection = None
+
+    # Get device ip.
+    ip_addr = device["ip_address"]
 
     # Only give connect handler what it needs. 
-    remote_device = {"device_type": device["device_type"], "host": device["ip_address"], "username": device["username"], "password": device["password"]}
-
+    remote_device = {"device_type": device["device_type"], "host": ip_addr, "username": device["username"], "password": device["password"], "secret": device["secret"]}
     # If the device is not a switch codemiko will crash.
+    # Attempt to open SSH connection first, then Telnet.
     try:
-        # Try to open a connection with the device.
-        connection = ConnectHandler(**remote_device)
-    except NetmikoAuthenticationException:
-        # Print log info.
-        logger.error(f"Unable to authenticate with device {device['host']}")
+        # Print logging info.
+        logger.info(f"Autodetecting model and opening connection for {ip_addr}")
+        # Open new ssh connection with switch.
+        ssh_connection = ConnectHandler(**remote_device)
     except NetmikoTimeoutException:
-        # Print log info.
-        logger.error(f"Something happened while trying to communicate with device {device['host']}")
+        # Print log.
+        logger.warning(f"Unable to connect to device {ip_addr} with SSH. Trying telnet...")
+        try:
+            # Change device type to telnet.
+            remote_device["device_type"] = "cisco_ios_telnet"
+            # Open new ssh connection with switch.
+            ssh_connection = ConnectHandler(**remote_device)
+        except NetmikoAuthenticationException:
+            # Set default value.
+            remote_device["ip_address"] = ip_addr
+            remote_device["host"] = "Unable_to_Authenticate"
+            # Print log
+            logger.warning(f"Failed to login to device {ip_addr}. Trying next available username and password.")
+        except Exception:
+            logger.error(f"Device {ip_addr} refused the connection.")
+    except NetmikoAuthenticationException:
+        # Set default value.
+        remote_device["ip_address"] = ip_addr
+        remote_device["host"] = "Unable_to_Authenticate"
+        # Print log
+        logger.warning(f"Failed to login to device {ip_addr}. Trying next available username and password.")
+    except Exception:
+        logger.error(f"Device {ip_addr} refused the connection.")
 
     # Configure terminal properties if connection is alive.
-    if connection is not None and connection.is_alive():
-        # Tell switch to continuously print output.
-        connection.send_command("terminal length 0", expect_string="#")
-        connection.send_command("set length 0", expect_string="#")
-        # Get priviledged terminal.
-        connection.enable()
+    if ssh_connection is not None and ssh_connection.is_alive():
+        # If the enable password is wrong, then netmiko will throw an error.
+        try:
+            # Get priviledged terminal.
+            ssh_connection.enable()
+        except ReadTimeout:
+            # Print log.
+            logger.error(f"Unable to enter priviledged mode. The enable password is incorrect for device {device['ip_address']} {device['host']}.")
+            # Close connection and set ssh_connection back to None.
+            ssh_connection.disconnect()
+            ssh_connection = None
 
-    # Get device interface, vlan, and config info.
-    interfaces, vlans, config = get_config_info(connection)
-    # Store info in device dictionary.
-    device["interfaces"] = interfaces
-    device["vlans"] = vlans
-    device["config"] = config
+        # Check if ssh_connection is still open.
+        if ssh_connection is not None:
+            # Tell switch to continuously print output.
+            ssh_connection.send_command("terminal length 0", expect_string="#")
+            ssh_connection.send_command("set length 0", expect_string="#")
+
+            # Store info if toggle is set.
+            if store_config_info:
+                # Get device interface, vlan, and config info.
+                interfaces, vlans, config = get_config_info(ssh_connection)
+                # Store info in device dictionary.
+                device["interfaces"] = interfaces
+                device["vlans"] = vlans
+                device["config"] = config
 
     # Connect and return
-    return connection
+    return ssh_connection
 
 def get_config_info(connection) -> netmiko.ssh_dispatcher:
     """

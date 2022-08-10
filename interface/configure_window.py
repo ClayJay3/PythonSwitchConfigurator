@@ -10,7 +10,7 @@ from typing import Tuple
 import netmiko
 
 from interface.popup_window import ListPopup, MultipleListPopup, text_popup
-from utils.open_connection import get_config_info, ssh_autodetect_switchlist_info, ssh
+from utils.open_connection import get_config_info, ssh_autodetect_switchlist_info, ssh_telnet
 
 
 # Create Configure UI window class.
@@ -39,6 +39,7 @@ class ConfigureUI:
         # Window elements and objects.
         self.usernames = None
         self.passwords = None
+        self.switch_secret = ""
         self.ip_list = []
         self.ssh_connections = []
         self.devices = []
@@ -71,7 +72,7 @@ class ConfigureUI:
         # This serves as a temp var used by many things, anytime a popup window that is destroyable is made, it's stored here.
         self.popup = None
 
-    def run(self, ips, usernames, passwords) -> None:
+    def run(self, ips, usernames, passwords, secret) -> None:
         """
         Call this function to start UI window in a new thread.
         """
@@ -80,6 +81,7 @@ class ConfigureUI:
         # Set username and password var.
         self.usernames = usernames
         self.passwords = passwords
+        self.switch_secret = secret
         # Set window is open.
         self.window_is_open = True
 
@@ -301,7 +303,7 @@ class ConfigureUI:
             # Get the current selected device.
             device = self.devices[device_index]
             # Open ssh connection with switch.
-            connection = ssh(device)
+            connection = ssh_telnet(device, store_config_info=True)
             # Store the new connection in the ssh connections list.
             self.ssh_connections[device_index] = connection
 
@@ -340,6 +342,14 @@ class ConfigureUI:
                 if child.widgetName != "ttk::combobox":
                     # Disable element.
                     child.configure(state="disable")
+        else:
+            # Enable config window components. Othewise textbox won't update with input.
+            self.enable()
+            # Insert config text.
+            self.text_box.delete("1.0", tk.END)
+            self.text_box.insert(tk.END, "Unable to pull config for this device. The secret password did not work for enable mode.")
+            # Disable.
+            self.disable()
 
     def refresh_config_callback(self) -> None:
         """
@@ -432,7 +442,7 @@ class ConfigureUI:
             # Run command
             output = connection.send_command("show interface status")
             # Open a new popup window with the output text.
-            text_popup(output, x_grid_size=12)
+            text_popup(title=device["host"] + " Command Output", text=output, x_grid_size=12)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -464,7 +474,7 @@ class ConfigureUI:
             # Run command
             output = connection.send_command("show log")
             # Open a new popup window with the output text.
-            text_popup(output, x_grid_size=15, y_grid_size=10)
+            text_popup(title=device["host"] + " Command Output", text=output, x_grid_size=15, y_grid_size=10)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -507,7 +517,7 @@ class ConfigureUI:
                 self.logger.info(f"Sending button command 'test cable tdr interface {selection}' to {device['host']}")
 
                 # Open a new popup window with the output text.
-                text_popup(output, x_grid_size=10, y_grid_size=3)
+                text_popup(title=device["host"] + " Command Output", text=output, x_grid_size=10, y_grid_size=3)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -540,7 +550,7 @@ class ConfigureUI:
             # Run command
             output = connection.send_command("show interface counter error")
             # Open a new popup window with the output text.
-            text_popup(output, x_grid_size=11, y_grid_size=10)
+            text_popup(title=device["host"] + " Command Output", text=output, x_grid_size=11, y_grid_size=10)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -604,7 +614,7 @@ class ConfigureUI:
             # Run command
             output = connection.send_command("show history")
             # Open a new popup window with the output text.
-            text_popup(output, x_grid_size=11, y_grid_size=10)
+            text_popup(title=device["host"] + " Command Output", text=output, x_grid_size=11, y_grid_size=10)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -637,7 +647,7 @@ class ConfigureUI:
             output1 = connection.send_command("show cdp neighbors")
             output2 = connection.send_command("show cdp neighbors detail")
             # Open a new popup window with the output text.
-            text_popup(output1 + "\n\n\n\n" + output2, x_grid_size=11, y_grid_size=10)
+            text_popup(title=device["host"] + " Command Output", text=output1 + "\n\n\n\n" + output2, x_grid_size=11, y_grid_size=10)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -669,7 +679,7 @@ class ConfigureUI:
             # Run command
             output = connection.send_command("show etherchannel detail")
             # Open a new popup window with the output text.
-            text_popup(output, x_grid_size=11, y_grid_size=10)
+            text_popup(title=device["host"] + " Command Output", text=output, x_grid_size=11, y_grid_size=10)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -707,7 +717,7 @@ class ConfigureUI:
                 self.logger.info(f"Sending button command 'show mac address-table | {selection}' to {device['host']}")
 
                 # Open a new popup window with the output text.
-                text_popup(output, x_grid_size=10, y_grid_size=3)
+                text_popup(title=device["host"] + " Command Output", text=output, x_grid_size=10, y_grid_size=3)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -744,7 +754,7 @@ class ConfigureUI:
                 # Run command
                 output = connection.send_command(f"show interface {selection} transceiver detail")
                 # Open a new popup window with the output text.
-                text_popup(output, x_grid_size=11, y_grid_size=10)
+                text_popup(title=device["host"] + " Command Output", text=output, x_grid_size=11, y_grid_size=10)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -777,7 +787,7 @@ class ConfigureUI:
             output1 = connection.send_command("show ip ssh")
             output2 = connection.send_command("show ssh")
             # Open a new popup window with the output text.
-            text_popup(output1 + "\n\n\n" + output2, x_grid_size=11, y_grid_size=10)
+            text_popup(title=device["host"] + " Command Output", text=output1 + "\n\n\n" + output2, x_grid_size=11, y_grid_size=10)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -821,6 +831,7 @@ class ConfigureUI:
             if channel_number is not None:
                 # Loop through each interface and build a command config list.
                 for interface in selections:
+                    command_list.append(f"default interface {interface}")
                     command_list.append(f"interface {interface}")
                     command_list.append(f"channel-group {channel_number} mode active")
                 # Exit config mode.
@@ -846,7 +857,7 @@ class ConfigureUI:
                 self.refresh_device_info(connection, device)
 
                 # Open text window with the output.
-                text_popup(output)
+                text_popup(title=device["host"] + " Channel Command Output", text=output)
         else:
             # Display message box saying the command was unable to complete.
             messagebox.showwarning(title="Info", message="The command was unable to complete because the connection to the device is currently not alive or was never opened.", parent=self.window)
@@ -1544,7 +1555,7 @@ class ConfigureUI:
                 # Execute switch config.
                 output = connection.send_config_set(commands, exit_config_mode=False)
                 # Open new popup window containing the commands output.
-                text_popup(output)
+                text_popup(title=device["host"] + " Upload Output", text=output)
             except Exception as error:
                 self.logger.critical("A NetMiko issue occured while trying to run the config commands.", stack_info=True, exc_info=error)
 
@@ -1627,7 +1638,7 @@ class ConfigureUI:
                         addresses.append(temp)
                     
                     # Now that we have a good list of IPs, get device info about each one.
-                    Thread(target=ssh_autodetect_switchlist_info, args=(self.usernames, self.passwords, addresses, self.devices)).start()
+                    Thread(target=ssh_autodetect_switchlist_info, args=(self.usernames, self.passwords, self.switch_secret, addresses, self.devices)).start()
 
                     # Set toggle.
                     self.retrieving_devices = True
