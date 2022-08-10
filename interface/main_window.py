@@ -271,6 +271,8 @@ class MainUI():
         if any(len(entry.get()) > 0 for entry in self.username_entrys) and any(len(entry.get()) > 0 for entry in self.password_entrys):
             # Check if auto discover has already been started.
             if not self.already_auto_discovering:
+                # Ask user if they want to enable telnet connections.
+                enable_telnet = messagebox.askyesno(title="Enable TELNET?", message="Do you want to enable TELNET connections? This will greatly increase the discovery completion time.")
                 # Ask user if they want to export extra info.
                 export_data_prompt = messagebox.askyesno(title="Export Data?", message="Would you like to export the discovered switch data to a CSV file? It may take longer for discovery to run.")
                 # Clear data lists from discover module.
@@ -306,7 +308,7 @@ class MainUI():
                     if self.secret_entry is not None:
                         secret = self.secret_entry.get()
                     # Start backprocess for auto discover.
-                    Thread(target=self.auto_discover_back_process, args=(text, usernames, passwords, secret, export_data_prompt)).start()
+                    Thread(target=self.auto_discover_back_process, args=(text, usernames, passwords, secret, enable_telnet, export_data_prompt)).start()
                     # Set safety toggle.
                     self.already_auto_discovering = True
                     # Print log.
@@ -325,12 +327,12 @@ class MainUI():
             self.logger.warning("You must enter username and password credentials. Otherwise, I can't log into the switch!")
             messagebox.showwarning(title="Warning", message="You must enter username and password credentials.")
 
-    def auto_discover_back_process(self, text, usernames, passwords, secret, export_data) -> None:
+    def auto_discover_back_process(self, text, usernames, passwords, secret, enable_telnet, export_data) -> None:
         """
         Helper function for auto discover.
         """
         # Discover ips.
-        discover_ip_list, export_info = cdp_auto_discover(text, usernames, passwords, secret, export_data)
+        discover_ip_list, export_info = cdp_auto_discover(text, usernames, passwords, secret, enable_telnet, export_data)
 
         # Store values in discover list array.
         for addr in discover_ip_list:

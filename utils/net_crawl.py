@@ -17,7 +17,7 @@ ip_discovery_list = []
 export_info_list = []
 license_info = []
 
-def cdp_auto_discover(ip_list, username, password, secret, export_info=False) -> list:
+def cdp_auto_discover(ip_list, username, password, secret, enable_telnet=False, export_info=False) -> list:
     """
     This function takes in a list of strings containing the ip addresses to start auto discovery with.
     Then new processes are spawned that run a show cdp neighbors command and parse the output to find more connected switches.
@@ -61,7 +61,7 @@ def cdp_auto_discover(ip_list, username, password, secret, export_info=False) ->
         # Create a new thread pool and get cdp info.
         pool = ThreadPool(MAX_DISCOVERY_THREADS)
         # Loop through each ip and create a new thread to get info.
-        result_ips = pool.map_async(partial(get_cdp_neighbors_info, username, password, secret, export_info), ip_list)
+        result_ips = pool.map_async(partial(get_cdp_neighbors_info, username, password, secret, enable_telnet, export_info), ip_list)
         # Wait for pool threads to finish.
         pool.close()
         pool.join()
@@ -87,17 +87,19 @@ def cdp_auto_discover(ip_list, username, password, secret, export_info=False) ->
         logger.info(f"Discovered IPs {new_ips} from the following devices: {ip_list}")
 
         # Recursion baby.
-        return cdp_auto_discover(new_ips, username, password, secret, export_info)
+        return cdp_auto_discover(new_ips, username, password, secret, enable_telnet, export_info)
 
-def get_cdp_neighbors_info(usernames, passwords, secret, export_info, ip_addr) -> Tuple(list):
+def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_info, ip_addr) -> Tuple(list):
     """
     This function opens a new ssh connection with the given ip and gets cdp neighbors info.
 
     Parameters:
     -----------
-        ip_addr - The IP address of the switch.
         usernames - The login username list
         passwords - The login password list
+        secret - The secret for enable mode.
+        enable_telnet - Toggle telnet login attempts.
+        ip_addr - The IP address of the switch.
 
     Returns:
     --------
@@ -125,14 +127,16 @@ def get_cdp_neighbors_info(usernames, passwords, secret, export_info, ip_addr) -
                 # Open new ssh connection with switch.
                 ssh_connection = ConnectHandler(**remote_device)
             except NetmikoTimeoutException:
-                try:
-                    # Change device type to telnet.
-                    remote_device["device_type"] = "cisco_ios_telnet"
-                    # Open new ssh connection with switch.
-                    ssh_connection = ConnectHandler(**remote_device)
-                except (NetmikoAuthenticationException, ConnectionRefusedError, TimeoutError):
-                    # Do nothing. Errors are expected, handling is slow.
-                    pass
+                # Check if telnet connections have been enabled.
+                if enable_telnet:
+                    try:
+                        # Change device type to telnet.
+                        remote_device["device_type"] = "cisco_ios_telnet"
+                        # Open new ssh connection with switch.
+                        ssh_connection = ConnectHandler(**remote_device)
+                    except (NetmikoAuthenticationException, ConnectionRefusedError, TimeoutError):
+                        # Do nothing. Errors are expected, handling is slow.
+                        pass
             except (NetmikoAuthenticationException, ConnectionRefusedError, TimeoutError):
                 # Do nothing. Errors are expected, handling is slow.
                 pass
