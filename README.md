@@ -1,11 +1,16 @@
 # PythonSwitchConfigurator
 It's universal, but probably only works for cisco switches. This project is an attempt to create a convenient GUI for the simple configuration of network switches. It can also export network maps through the auto discover feature.
+![main](https://user-images.githubusercontent.com/26121134/183433953-9598a36e-403a-4e54-bbb5-ea6343cb4dcf.PNG)
+![config](https://user-images.githubusercontent.com/26121134/183433978-dff9b10a-c5df-4524-9f28-439378d851be.png)
+![map](https://user-images.githubusercontent.com/26121134/183434476-88a4cb9c-7d72-4736-884f-e2333090d7e3.PNG)
+![mapinfo](https://user-images.githubusercontent.com/26121134/183434021-c08c2dfa-0dbc-47bc-a8b3-e8348ee57afe.png)
+
 ```diff
 -RUN WITH CAUTION. YOU CAN EASILY MESS UP A SWITCH'S CONFIG WITH THIS PROGRAM.-
 ```
 
 ## Install
-This python program has been compiled with pyinstaller, which turns python code into a .exe file. It includes all dependencies and a python 3.8.10 installation in the executable, so no third-party application need to be installed.
+This python program has been compiled with pyinstaller, which turns python code into a .exe file. It includes all dependencies and a python 3.8.10 installation in the executable, so no third-party applications need to be installed.
   1) Download the latest release.
       - onefile.zip offers a more simplistic application executable, but runs at a slower speed. This is because the whole application and its dependencies are compiled
         into a single file.
