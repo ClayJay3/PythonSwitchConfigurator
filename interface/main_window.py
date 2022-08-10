@@ -268,7 +268,7 @@ class MainUI():
             Nothing
         """
         # Check if a password has been entered.
-        if any(len(entry.get()) > 0 for entry in self.username_entrys) and any(len(entry.get()) > 0 for entry in self.password_entrys):
+        if any(len(entry.get()) > 0 for entry in self.password_entrys):
             # Check if auto discover has already been started.
             if not self.already_auto_discovering:
                 # Ask user if they want to enable telnet connections.
@@ -280,13 +280,6 @@ class MainUI():
                 # Get username and password lists.
                 usernames = [username.get() for username in self.username_entrys]
                 passwords = [password.get() for password in self.password_entrys]
-                # Remove empty usernames.
-                for i, username in enumerate(usernames):
-                    # Check length.
-                    if len(username) <= 0:
-                        # Remove list item.
-                        usernames.pop(i)
-                        passwords.pop(i)
                 # Get text from textbox.
                 text = self.text_box.get('1.0', tk.END).splitlines()
 
@@ -365,18 +358,20 @@ class MainUI():
                     file.write(data_string)
 
                 # Write license info.
-                # data_string = ""
-                # with open('exports/license_info.txt', 'w') as file:
-                #     # Loop through each device and append info.
-                #     for device in export_info:
-                #         # Save hostname, ip, and license_info.
-                #         data_string += f"{device['hostname']} ({device['ip_addr']}):\n\n"
-                #         data_string += device["license_info"]
-                #         # Add newline.
-                #         data_string += "\n\n#######################################################################################\n\n"
+                data_string = ""
+                with open('exports/license_info.txt', 'w') as file:
+                    # Loop through each device and append info.
+                    for device in export_info:
+                        # Check if device is a switch.
+                        if device["is_switch"]:
+                            # Save hostname, ip, and license_info.
+                            data_string += f"{device['hostname']} ({device['ip_addr']}):\n\n"
+                            data_string += device["license_info"]
+                            # Add newline.
+                            data_string += "\n\n#######################################################################################\n\n"
 
-                #     # Write the final string.
-                #     file.write(data_string)
+                    # Write the final string.
+                    file.write(data_string)
 
                 # Open network discovery map.
                 # Create new network map object from pyvis.
@@ -426,6 +421,10 @@ class MainUI():
                 #                 title=[str(info) for info in export_info],
                 #                 label=[info["hostname"] for info in export_info],
                 #                 color=["#%02X%02X%02X" % (gen_rand_hex(), gen_rand_hex(), gen_rand_hex()) for i in range(len(export_info))])
+                # Remove license info from dictionary.
+                for info in export_info:
+                    info.pop("license_info", None)
+                # Add the nodes to the network diagram.
                 graph_net.add_nodes(list(range(len(export_info))),
                             value=name_weights,
                             title=[str(str(info)[1:-1].replace(",", "\n")) for info in export_info],
@@ -546,7 +545,7 @@ class MainUI():
                 self.config_window.run(self.ip_list, usernames, passwords, secret)
         else:
             # Print log info.
-            self.logger.warning("You must enter username and password credentials. Otherwise, I can't log into the switch!")
+            self.logger.warning("You must enter password credentials. Otherwise, I can't log into the switch!")
             messagebox.showwarning(title="Warning", message="You must enter username and password credentials. If you are using TELNET, you must at least enter a password.")
 
     def mass_ping_button_callback(self) -> None:

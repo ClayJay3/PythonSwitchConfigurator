@@ -120,7 +120,7 @@ def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_i
                 secret = password
 
             # Create device dictionary.
-            remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password, "secret": secret}
+            remote_device = {"device_type": "cisco_ios_telnet", "host": ip_addr, "username": username, "password": password, "secret": secret}
             # If the device is not a switch codemiko will crash.
             # Attempt to open SSH connection first, then Telnet.
             try:
@@ -134,10 +134,10 @@ def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_i
                         remote_device["device_type"] = "cisco_ios_telnet"
                         # Open new ssh connection with switch.
                         ssh_connection = ConnectHandler(**remote_device)
-                    except (NetmikoAuthenticationException, ConnectionRefusedError, TimeoutError):
+                    except (NetmikoAuthenticationException, ConnectionRefusedError, TimeoutError, Exception):
                         # Do nothing. Errors are expected, handling is slow.
                         pass
-            except (NetmikoAuthenticationException, ConnectionRefusedError, TimeoutError):
+            except (NetmikoAuthenticationException, ConnectionRefusedError, TimeoutError, Exception):
                 # Do nothing. Errors are expected, handling is slow.
                 pass
 
@@ -158,18 +158,18 @@ def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_i
             if ssh_connection is not None and ssh_connection.is_alive():
                 # Get parent hostname.
                 prompt = ssh_connection.find_prompt()[:-1]
-                # # Get license information about parent switch.
-                # license_output = ssh_connection.send_command("show license")
-                # # Check if the command output failed.
-                # if len(license_output.splitlines()) <= 3:
-                #     # Run different show license command.
-                #     license_output = ssh_connection.send_command("show license all")
-                # # Check if it failed again, and run different command.
-                # if len(license_output.splitlines()) <= 3:
-                #     # Run different show license command.
-                #     license_output = ssh_connection.send_command("show license right-to-use")
-                # # Append information to the list.
-                # license_info.append({"ip_addr": ip_addr, "license_info": license_output})
+                # Get license information about parent switch.
+                license_output = ssh_connection.send_command("show license")
+                # Check if the command output failed.
+                if len(license_output.splitlines()) <= 3:
+                    # Run different show license command.
+                    license_output = ssh_connection.send_command("show license all")
+                # Check if it failed again, and run different command.
+                if len(license_output.splitlines()) <= 3:
+                    # Run different show license command.
+                    license_output = ssh_connection.send_command("show license right-to-use")
+                # Append information to the list.
+                license_info.append({"ip_addr": ip_addr, "license_info": license_output})
 
                 #######################################################################
                 # Get the IP and hostname info.

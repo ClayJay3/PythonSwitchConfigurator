@@ -882,8 +882,13 @@ class ConfigureUI:
         addr = device["ip_address"]
 
 
-        # Open new CMD window with an ssh connection to the switch.
-        subprocess.Popen(f"start /wait ssh {device['username']}@{addr}", shell=True)
+        # Check device connection type.
+        if device["device_type"] != "cisco_ios_telnet":
+            # Open new CMD window with an ssh connection to the switch.
+            subprocess.Popen(f"start /wait ssh {device['username']}@{addr}", shell=True)
+        else:
+            # Show messagebox.
+            messagebox.showwarning(message="Console windows are not supported for TELNET connections.")
 
 
     ###########################################################################

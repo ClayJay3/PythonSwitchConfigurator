@@ -40,7 +40,7 @@ def ssh_autodetect_info(usernames, passwords, secret, ip_addr, result_info=None)
             secret = password
 
         # Create device dictionary.
-        remote_device = {"device_type": "autodetect", "host": ip_addr, "username": username, "password": password, "secret": secret}
+        remote_device = {"device_type": "cisco_ios_telnet", "host": ip_addr, "username": username, "password": password, "secret": secret}
         # If the device is not a switch codemiko will crash.
         # Attempt to open SSH connection first, then Telnet.
         try:
