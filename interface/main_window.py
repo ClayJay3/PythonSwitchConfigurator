@@ -290,6 +290,9 @@ class MainUI():
                         enable_secrets.pop(i)
                 # Get text from textbox.
                 text = self.text_box.get('1.0', tk.END).splitlines()
+                if len(text) > 25:
+                    # Show warning if textbox has more than 25 entries.
+                    messagebox.showwarning(title="WARNING!", message="Discovering from too many devices at the same time may cause slow ssh/telnet console output which can result in parsing errors.")
 
                 # Check if we are able to auth with the first device at least before continuing.
                 test_ip = text[0].strip()
@@ -445,7 +448,6 @@ class MainUI():
                 #                 label=[info["hostname"] for info in filtered_export_info],
                 #                 color=["#%02X%02X%02X" % (gen_rand_hex(), gen_rand_hex(), gen_rand_hex()) for i in range(len(filtered_export_info))])
                 # Add the nodes to the network diagram.
-                print(filtered_export_info)
                 graph_net.add_nodes(list(range(len(filtered_export_info))),
                             value=name_weights,
                             title=[str(str(info)[1:-1].replace(",", "\n")) for info in filtered_export_info],
