@@ -17,7 +17,7 @@ ip_discovery_list = []
 export_info_list = []
 license_info = []
 
-def cdp_auto_discover(ip_list, username, password, secret, enable_telnet=False, export_info=False) -> list:
+def cdp_auto_discover(ip_list, usernames, passwords, enable_secrets, enable_telnet=False, export_info=False) -> list:
     """
     This function takes in a list of strings containing the ip addresses to start auto discovery with.
     Then new processes are spawned that run a show cdp neighbors command and parse the output to find more connected switches.
@@ -28,6 +28,10 @@ def cdp_auto_discover(ip_list, username, password, secret, enable_telnet=False, 
     Parameters:
     -----------
         list(string) - A list of the initially known switch IPs.
+        list(string) - A list of the username creds.
+        list(string) - A list of the password creds.
+        boolean - Whether or not to try telnet if ssh fails.
+        boolean - Whether of not to try and export info.
 
     Returns:
     --------
@@ -65,7 +69,7 @@ def cdp_auto_discover(ip_list, username, password, secret, enable_telnet=False, 
         # Create a new thread pool and get cdp info.
         pool = ThreadPool(MAX_DISCOVERY_THREADS)
         # Loop through each ip and create a new thread to get info.
-        result_ips = pool.map_async(partial(get_cdp_neighbors_info, username, password, secret, enable_telnet, export_info), ip_list)
+        result_ips = pool.map_async(partial(get_cdp_neighbors_info, usernames, passwords, enable_secrets, enable_telnet, export_info), ip_list)
         # Wait for pool threads to finish.
         pool.close()
         pool.join()
@@ -91,9 +95,9 @@ def cdp_auto_discover(ip_list, username, password, secret, enable_telnet=False, 
         logger.info(f"Discovered IPs {new_ips} from the following devices: {ip_list}")
 
         # Recursion baby.
-        return cdp_auto_discover(new_ips, username, password, secret, enable_telnet, export_info)
+        return cdp_auto_discover(new_ips, usernames, passwords, enable_secrets, enable_telnet, export_info)
 
-def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_info, ip_addr) -> Tuple(list):
+def get_cdp_neighbors_info(usernames, passwords, enable_secrets, enable_telnet, export_info, ip_addr) -> Tuple(list):
     """
     This function opens a new ssh connection with the given ip and gets cdp neighbors info.
 
@@ -101,7 +105,7 @@ def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_i
     -----------
         usernames - The login username list
         passwords - The login password list
-        secret - The secret for enable mode.
+        enable_secrets - The secrets for enable mode.
         enable_telnet - Toggle telnet login attempts.
         ip_addr - The IP address of the switch.
 
@@ -118,7 +122,7 @@ def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_i
 
     # Check if IP length is greater than zero.
     if len(ip_addr) > 0:
-        for username, password in zip(usernames, passwords):
+        for username, password, secret in zip(usernames, passwords, enable_secrets):
             # If secret is empty use normal password.
             if len(secret) <= 0:
                 secret = password
@@ -271,6 +275,7 @@ def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_i
                     is_switch = False
                     is_router = False
                     is_phone = False
+                    is_camera = False
                     parent_addr = "NULL"
                     parent_host = "NULL"
                     parent_trunk_interface = "NULL"
@@ -344,6 +349,10 @@ def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_i
                             if platform != "NULL" and platform != "Linux":
                                 is_phone = True
 
+                        # If it's not any of these, then assume it's a camera.
+                        if not any([is_router, is_switch, is_wireless_ap, is_phone]):
+                            is_camera = True
+
                         # Append parent address to device.
                         parent_addr = ip_addr
                         parent_host = prompt
@@ -359,6 +368,7 @@ def get_cdp_neighbors_info(usernames, passwords, secret, enable_telnet, export_i
                     device_info["is_switch"] = is_switch
                     device_info["is_router"] = is_router
                     device_info["is_phone"] = is_phone
+                    device_info["is_camera"] = is_camera
                     device_info["parent_addr"] = parent_addr
                     device_info["parent_host"] = parent_host
                     device_info["parent_trunk_interface"] = parent_trunk_interface

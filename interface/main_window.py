@@ -1,6 +1,5 @@
 import logging
 import os
-import secrets
 import sys
 import webbrowser
 import tkinter as tk
@@ -11,6 +10,7 @@ from tkinter import font
 from pyvis.network import Network
 
 from interface import configure_window
+from interface.popup_window import MultipleCheckboxPopup
 from utils.open_connection import ssh_autodetect_info
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -33,14 +33,15 @@ class MainUI():
         self.window = None
         self.creds_frame = None
         self.text_box  = None
-        self.secret_entry = None
         self.username_entrys = []
         self.password_entrys = []
+        self.secret_entrys = []
         self.list = None
         self.ip_list = []
         self.discovery_list = []
         self.already_auto_discovering = False
         self.export_permission_error = False
+        self.enable_telnet_check = None
 
         # Open log file for displaying in console window.
         self.log_file = open("logs/latest.log", "r", encoding="utf-8")
@@ -78,6 +79,8 @@ class MainUI():
         self.window.attributes("-topmost", True)
         self.window.update()
         self.window.attributes("-topmost", False)
+        # Create checkbox variables.
+        self.enable_telnet_check = tk.BooleanVar(self.window)
 
         # Setup window grid layout.
         self.window.rowconfigure(self.grid_size, weight=1, minsize=50)
@@ -135,21 +138,28 @@ class MainUI():
 
         # Populate login creds frame.
         creds_title = tk.Label(master=self.creds_frame, text="Login Credentials", font=(self.font, 18))
-        creds_title.grid(row=0, column=0, columnspan=6, sticky=tk.NSEW)
+        creds_title.grid(row=0, column=0, columnspan=6, sticky=tk.W)
+        enable_telnet_checkbox = tk.Checkbutton(master=self.creds_frame, text="Enable Telnet", variable=self.enable_telnet_check, onvalue=True, offvalue=False)
+        enable_telnet_checkbox.grid(row=1, rowspan=1, column=9, columnspan=1, sticky=tk.E)
+        creds_title = tk.Label(master=self.creds_frame, text="(Enable secret is not required if enable mode is default for vty connections.)")
+        creds_title.grid(row=0, column=6, columnspan=4, sticky=tk.E)
         add_cred_button = tk.Button(master=self.creds_frame, text="Add Creds", foreground="black", background="white", command=self.add_creds_callback)
         add_cred_button.grid(row=5, column=0, sticky=tk.NSEW)
-        add_secret_button = tk.Button(master=self.creds_frame, text="Add Secret", foreground="black", background="white", command=self.add_secret_callback)
-        add_secret_button.grid(row=5, column=1, sticky=tk.NSEW)
         username_label = tk.Label(master=self.creds_frame, text="Username:")
-        username_label.grid(row=5, column=5, sticky=tk.NSEW)
+        username_label.grid(row=5, column=4, sticky=tk.NSEW)
         username_entry = tk.Entry(master=self.creds_frame, width=10)
-        username_entry.grid(row=5, column=6, sticky=tk.NSEW)
+        username_entry.grid(row=5, column=5, sticky=tk.NSEW)
         self.username_entrys.append(username_entry)     # Append username field to list.
         password_label = tk.Label(master=self.creds_frame, text="Password:")
-        password_label.grid(row=5, column=7, sticky=tk.NSEW)
+        password_label.grid(row=5, column=6, sticky=tk.NSEW)
         password_entry = tk.Entry(master=self.creds_frame, show="*", width=10)
-        password_entry.grid(row=5, column=8, sticky=tk.NSEW)
+        password_entry.grid(row=5, column=7, sticky=tk.NSEW)
         self.password_entrys.append(password_entry)     # Append password field to list.
+        secret_label = tk.Label(master=self.creds_frame, text="Enable Secret:")
+        secret_label.grid(row=5, column=8, sticky=tk.NSEW)
+        new_secret_entry = tk.Entry(master=self.creds_frame, show="*", width=10)
+        new_secret_entry.grid(row=5, column=9, sticky=tk.NSEW)
+        self.secret_entrys.append(new_secret_entry)
 
         # Populate console frame.
         self.list = tk.Listbox(master=console_frame, background="black", foreground="green", highlightcolor="green")
@@ -172,18 +182,25 @@ class MainUI():
                     if len(self.username_entrys[0].get()) > 0:
                         # Create and place new entry boxes.
                         username_label = tk.Label(master=self.creds_frame, text="Username:")
-                        username_label.grid(row=len(self.username_entrys) + 5, column=5, sticky=tk.NSEW)
+                        username_label.grid(row=len(self.username_entrys) + 5, column=4, sticky=tk.NSEW)
                         new_username_entry = tk.Entry(master=self.creds_frame, width=10)
-                        new_username_entry.grid(row=len(self.username_entrys) + 5, column=6, sticky=tk.NSEW)
+                        new_username_entry.grid(row=len(self.username_entrys) + 5, column=5, sticky=tk.NSEW)
                         password_label = tk.Label(master=self.creds_frame, text="Password:")
-                        password_label.grid(row=len(self.username_entrys) + 5, column=7, sticky=tk.NSEW)
+                        password_label.grid(row=len(self.username_entrys) + 5, column=6, sticky=tk.NSEW)
                         new_password_entry = tk.Entry(master=self.creds_frame, show="*", width=10)
-                        new_password_entry.grid(row=len(self.username_entrys) + 5, column=8, sticky=tk.NSEW)
+                        new_password_entry.grid(row=len(self.username_entrys) + 5, column=7, sticky=tk.NSEW)
+                        secret_label = tk.Label(master=self.creds_frame, text="Enable Secret:")
+                        secret_label.grid(row=len(self.username_entrys) + 5, column=8, sticky=tk.NSEW)
+                        new_secret_entry = tk.Entry(master=self.creds_frame, show="*", width=10)
+                        new_secret_entry.grid(row=len(self.username_entrys) + 5, column=9, sticky=tk.NSEW)
+
                         # Fill new entry box.
                         new_username_entry.insert(0, lines.pop(0).strip())
+
                         # Append entry boxes to list.
                         self.username_entrys.append(new_username_entry)
                         self.password_entrys.append(new_password_entry)
+                        self.secret_entrys.append(new_secret_entry)
                     else:
                         # Fill new entry box.
                         username_entry.insert(0, lines.pop(0).strip())
@@ -206,53 +223,30 @@ class MainUI():
         if len(self.username_entrys) < 5:
             # Create and place new entry boxes.
             username_label = tk.Label(master=self.creds_frame, text="Username:")
-            username_label.grid(row=len(self.username_entrys) + 5, column=5, sticky=tk.NSEW)
+            username_label.grid(row=len(self.username_entrys) + 5, column=4, sticky=tk.NSEW)
             new_username_entry = tk.Entry(master=self.creds_frame, width=10)
-            new_username_entry.grid(row=len(self.username_entrys) + 5, column=6, sticky=tk.NSEW)
+            new_username_entry.grid(row=len(self.username_entrys) + 5, column=5, sticky=tk.NSEW)
             password_label = tk.Label(master=self.creds_frame, text="Password:")
-            password_label.grid(row=len(self.username_entrys) + 5, column=7, sticky=tk.NSEW)
+            password_label.grid(row=len(self.username_entrys) + 5, column=6, sticky=tk.NSEW)
             new_password_entry = tk.Entry(master=self.creds_frame, show="*", width=10)
-            new_password_entry.grid(row=len(self.username_entrys) + 5, column=8, sticky=tk.NSEW)
+            new_password_entry.grid(row=len(self.username_entrys) + 5, column=7, sticky=tk.NSEW)
+            secret_label = tk.Label(master=self.creds_frame, text="Enable Secret:")
+            secret_label.grid(row=len(self.username_entrys) + 5, column=8, sticky=tk.NSEW)
+            new_secret_entry = tk.Entry(master=self.creds_frame, show="*", width=10)
+            new_secret_entry.grid(row=len(self.username_entrys) + 5, column=9, sticky=tk.NSEW)
 
             # Append entry boxes to list.
             self.username_entrys.append(new_username_entry)
             self.password_entrys.append(new_password_entry)
+            self.secret_entrys.append(new_secret_entry)
 
             # Print log.
             self.logger.info(f"Added credential box {len(self.username_entrys)}")
         else:
             # Print log.
-            self.logger.warning("No more credential boxes are allowed, too many can be inefficient. Consider configuring your switches for a RADIUS/AUTH server.")
+            self.logger.warning("No more credential boxes are allowed, too many can be inefficient. Consider configuring your switches for a RADIUS/TACACS+ server.")
             # Show messagebox.
-            messagebox.showwarning(title="Warning", message="No more credential boxes are allowed, too many can be inefficient. Consider configuring your switches for a RADIUS/AUTH server.")
-
-    def add_secret_callback(self) -> None:
-        """
-        This function is triggered everytime the Add Secret button is pressed. It adds a new box for inputting switch secret.
-
-        Parameters:
-        -----------
-            None
-
-        Returns:
-        --------
-            Nothing
-        """
-        # Check if we have created more than 5 different users.
-        if self.secret_entry is None:
-            # Create and place new entry boxes.
-            secret_label = tk.Label(master=self.creds_frame, text="Enable Secret (must be valid on all switches):")
-            secret_label.grid(row=0, column=7, sticky=tk.NSEW)
-            self.secret_entry = tk.Entry(master=self.creds_frame, show="*", width=10)
-            self.secret_entry.grid(row=0, column=8, sticky=tk.NSEW)
-
-            # Print log.
-            self.logger.info(f"Added secret box.")
-        else:
-            # Print log.
-            self.logger.warning("No more secret boxes are allowed, too many can be inefficient.")
-            # Show messagebox.
-            messagebox.showwarning(title="Warning", message="No more secret boxes are allowed, too many can be inefficient.")
+            messagebox.showwarning(title="Warning", message="No more credential boxes are allowed, too many can be inefficient. Consider configuring your switches for a RADIUS/TACACS+ server.")
 
     def auto_discover_switches(self) -> None:
         """
@@ -271,15 +265,21 @@ class MainUI():
         if any(len(entry.get()) > 0 for entry in self.password_entrys):
             # Check if auto discover has already been started.
             if not self.already_auto_discovering:
-                # Ask user if they want to enable telnet connections.
-                enable_telnet = messagebox.askyesno(title="Enable TELNET?", message="Do you want to enable TELNET connections? This will greatly increase the discovery completion time.")
                 # Ask user if they want to export extra info.
                 export_data_prompt = messagebox.askyesno(title="Export Data?", message="Would you like to export the discovered switch data to a CSV file? It may take longer for discovery to run.")
+                # If they are exporting data, then ask what data they want.
+                export_data_selections = []
+                if export_data_prompt:
+                    # Create checkbox popup.
+                    popup = MultipleCheckboxPopup()
+                    # Open the popup and get the return values.
+                    export_data_selections = popup.open(["ROUTER", "SWITCH", "WIRELESS AP", "IP PHONE", "CAMERA"], default_check_value=True, prompt="Choose the devices you want to graph: ")
                 # Clear data lists from discover module.
                 clear_discoveries()
                 # Get username and password lists.
                 usernames = [username.get() for username in self.username_entrys]
                 passwords = [password.get() for password in self.password_entrys]
+                enable_secrets = [secret.get() for secret in self.secret_entrys]
                 # Remove empty passwords.
                 for i, password in enumerate(passwords):
                     # Check length.
@@ -287,6 +287,7 @@ class MainUI():
                         # Remove list item.
                         usernames.pop(i)
                         passwords.pop(i)
+                        enable_secrets.pop(i)
                 # Get text from textbox.
                 text = self.text_box.get('1.0', tk.END).splitlines()
 
@@ -295,7 +296,7 @@ class MainUI():
                 auth_success = False
                 # Get secret
                 # Attempt to auth.
-                first_switch = ssh_autodetect_info(usernames, passwords, "", test_ip)
+                first_switch = ssh_autodetect_info(usernames, passwords, enable_secrets, test_ip)
                 # Check if auth was successful.
                 if first_switch["host"] != "Unable_to_Authenticate":
                     # Set toggle.
@@ -303,17 +304,13 @@ class MainUI():
                 
                 # Only continue if the first switch login was successful.
                 if auth_success:
-                    # Get the secret from the user if entered.
-                    secret = ""
-                    if self.secret_entry is not None:
-                        secret = self.secret_entry.get()
                     # Start backprocess for auto discover.
-                    Thread(target=self.auto_discover_back_process, args=(text, usernames, passwords, secret, enable_telnet, export_data_prompt)).start()
+                    Thread(target=self.auto_discover_back_process, args=(text, usernames, passwords, enable_secrets, self.enable_telnet_check.get(), export_data_prompt, export_data_selections)).start()
                     # Set safety toggle.
                     self.already_auto_discovering = True
                     # Print log.
                     self.logger.info("Auto discover has been triggered.")
-                    messagebox.showwarning(message="Auto discovery has been started, please be patient while the program searches for new devices.\nOnly run autodiscovery occasionally or when multiple new devices are connected to the network.")
+                    messagebox.showinfo(message="Auto discovery has been started, please be patient while the program searches for new devices.\nOnly run autodiscovery occasionally or when multiple new devices are connected to the network.")
                 else:
                     # Print log.
                     self.logger.info("Unable to authenticate with the first device. Make sure at least one set of creds is compatible.")
@@ -327,12 +324,12 @@ class MainUI():
             self.logger.warning("You must enter username and password credentials. Otherwise, I can't log into the switch!")
             messagebox.showwarning(title="Warning", message="You must enter username and password credentials.")
 
-    def auto_discover_back_process(self, text, usernames, passwords, secret, enable_telnet, export_data) -> None:
+    def auto_discover_back_process(self, text, usernames, passwords, enable_secrets, enable_telnet, export_data=True, export_data_selections=[]) -> None:
         """
         Helper function for auto discover.
         """
         # Discover ips.
-        discover_ip_list, export_info = cdp_auto_discover(text, usernames, passwords, secret, enable_telnet, export_data)
+        discover_ip_list, export_info = cdp_auto_discover(text, usernames, passwords, enable_secrets, enable_telnet, export_data)
 
         # Store values in discover list array.
         for addr in discover_ip_list:
@@ -389,64 +386,81 @@ class MainUI():
                 # Also generate a list of colors depending on device type.
                 name_weights = []
                 colors = []
+                filtered_export_info = []
                 for device in export_info:
-                    # Get the device hostname.
-                    hostname = device["hostname"]
-                    weight = 0
-                    # Loop through export info again and count occurances.
-                    for info in export_info:
-                        # Check if the hostname or parent hostname equals the current hostname.
-                        if info["hostname"] == hostname or info["parent_host"] == hostname:
-                            # Add one to weight.
-                            weight += 1
-                    # Append weight to weights list.
-                    name_weights.append(weight)
+                    # Check if the matching data list isn't empty.
+                    if len(export_data_selections) > 0:
+                        # Create list of booleans for device type.
+                        type_boolean_list = [device["is_router"], device["is_switch"], device["is_wireless_ap"], device["is_phone"], device["is_camera"]]
+                        # Get a list of matching values for corresponding positions in the list.
+                        matching = False
+                        for i, bool_val in enumerate(export_data_selections):
+                            # Check if both are true.
+                            if bool_val and type_boolean_list[i]:
+                                matching = True
 
-                    # Check device type and append color.
-                    if device["is_wireless_ap"]:
-                        # Orange.
-                        colors.append("#eb6200")
-                    elif device["is_switch"]:       # is_switch and is_router can both be true, router overides.
-                        if device["is_router"]:
-                            # Green.
-                            colors.append("#21ad11")
-                        else:
-                            # Blue
-                            colors.append("#3300eb")
-                    elif device["is_phone"]:
-                        # Yellow
-                        colors.append("#f0e805")
-                    else:
-                        # Purple.
-                        colors.append("#9f3dae")
+                    # If the device is valid per user input, then append to new list and do other stuff.
+                    if matching:
+                        # Remove license info from dictionary.
+                        device.pop("license_info", None)
+                        # Append device to new list.
+                        filtered_export_info.append(device)
+
+                        # Get the device hostname.
+                        hostname = device["hostname"]
+                        weight = 0
+                        # Loop through export info again and count occurances.
+                        for info in export_info:
+                            # Check if the hostname or parent hostname equals the current hostname.
+                            if info["hostname"] == hostname or info["parent_host"] == hostname:
+                                # Add one to weight.
+                                weight += 1
+                        # Append weight to weights list.
+                        name_weights.append(weight)
+
+                        # Check device type and append color.
+                        if device["is_wireless_ap"]:
+                            # Orange.
+                            colors.append("#eb6200")
+                        elif device["is_switch"]:       # is_switch and is_router can both be true, router overides.
+                            if device["is_router"]:
+                                # Green.
+                                colors.append("#21ad11")
+                            else:
+                                # Blue
+                                colors.append("#3300eb")
+                        elif device["is_phone"]:
+                            # Yellow
+                            colors.append("#f0e805")
+                        elif device["is_camera"]:
+                            # Purple.
+                            colors.append("#9f3dae")
 
                 # Create a lamba function to generate random hex color codes.
                 # gen_rand_hex = lambda: random.randint(0,255)
                 # Add the nodes to the network graph.
-                # graph_net.add_nodes(list(range(len(export_info))),
+                # graph_net.add_nodes(list(range(len(filtered_export_info))),
                 #                 value=name_weights,
-                #                 title=[str(info) for info in export_info],
-                #                 label=[info["hostname"] for info in export_info],
-                #                 color=["#%02X%02X%02X" % (gen_rand_hex(), gen_rand_hex(), gen_rand_hex()) for i in range(len(export_info))])
-                # Remove license info from dictionary.
-                for info in export_info:
-                    info.pop("license_info", None)
+                #                 title=[str(info) for info in filtered_export_info],
+                #                 label=[info["hostname"] for info in filtered_export_info],
+                #                 color=["#%02X%02X%02X" % (gen_rand_hex(), gen_rand_hex(), gen_rand_hex()) for i in range(len(filtered_export_info))])
                 # Add the nodes to the network diagram.
-                graph_net.add_nodes(list(range(len(export_info))),
+                print(filtered_export_info)
+                graph_net.add_nodes(list(range(len(filtered_export_info))),
                             value=name_weights,
-                            title=[str(str(info)[1:-1].replace(",", "\n")) for info in export_info],
-                            label=[info["hostname"] for info in export_info],
+                            title=[str(str(info)[1:-1].replace(",", "\n")) for info in filtered_export_info],
+                            label=[info["hostname"] for info in filtered_export_info],
                             color=colors)
 
                 # Add the edges/paths to the nodes. This is super ineffficient.
-                for i, device in enumerate(export_info):
+                for i, device in enumerate(filtered_export_info):
                     # Get current device hostname. Cutoff domain. Also grab local interface.
                     hostname = device["hostname"].split(".", 1)[0]
                     local_interface = device["local_trunk_interface"]
                     # Get current device parent hostname and interface.
                     parent_hostname = device["parent_host"]
                     parent_interface = device["parent_trunk_interface"]
-                    for j, device2 in enumerate(export_info):
+                    for j, device2 in enumerate(filtered_export_info):
                         # Get search device hostname. Cutoff domain.
                         search_hostname = device2["hostname"].split(".", 1)[0]
                         # Check if parent and search name are the same.
@@ -544,6 +558,7 @@ class MainUI():
                 # Get username and password lists.
                 usernames = [username.get() for username in self.username_entrys]
                 passwords = [password.get() for password in self.password_entrys]
+                enable_secrets = [secret.get() for secret in self.secret_entrys]
                 # Remove empty passwords.
                 for i, password in enumerate(passwords):
                     # Check length.
@@ -551,12 +566,10 @@ class MainUI():
                         # Remove list item.
                         usernames.pop(i)
                         passwords.pop(i)
+                        enable_secrets.pop(i)
                 # Get secret from user if they entered it.
-                secret = ""
-                if self.secret_entry is not None:
-                    secret = self.secret_entry.get()
                 # Open configure window and give it the switch ip list, username, and password.
-                self.config_window.run(self.ip_list, usernames, passwords, secret)
+                self.config_window.run(self.ip_list, usernames, passwords, enable_secrets)
         else:
             # Print log info.
             self.logger.warning("You must enter password credentials. Otherwise, I can't log into the switch!")

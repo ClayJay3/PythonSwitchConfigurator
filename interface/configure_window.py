@@ -1,3 +1,4 @@
+from cgitb import enable
 import re
 import logging
 import time
@@ -39,7 +40,7 @@ class ConfigureUI:
         # Window elements and objects.
         self.usernames = None
         self.passwords = None
-        self.switch_secret = ""
+        self.enable_secrets = None
         self.ip_list = []
         self.ssh_connections = []
         self.devices = []
@@ -72,7 +73,7 @@ class ConfigureUI:
         # This serves as a temp var used by many things, anytime a popup window that is destroyable is made, it's stored here.
         self.popup = None
 
-    def run(self, ips, usernames, passwords, secret) -> None:
+    def run(self, ips, usernames, passwords, enable_secrets) -> None:
         """
         Call this function to start UI window in a new thread.
         """
@@ -81,7 +82,7 @@ class ConfigureUI:
         # Set username and password var.
         self.usernames = usernames
         self.passwords = passwords
-        self.switch_secret = secret
+        self.enable_secrets = enable_secrets
         # Set window is open.
         self.window_is_open = True
 
@@ -294,14 +295,14 @@ class ConfigureUI:
         device_index = self.drop_down.current()
         # Get device connection.
         connection = self.ssh_connections[device_index]
+        # Get the current selected device.
+        device = self.devices[device_index]
 
         # Print log.
         self.logger.info(f"Selected device: {self.ip_list[device_index]}. Getting data...")
 
         # Check if a valid choice has been made.
         if device_index != -1 and (self.ssh_connections[device_index] is None or not self.ssh_connections[device_index].is_alive()):
-            # Get the current selected device.
-            device = self.devices[device_index]
             # Open ssh connection with switch.
             connection = ssh_telnet(device, store_config_info=True)
             # Store the new connection in the ssh connections list.
@@ -311,7 +312,7 @@ class ConfigureUI:
         # Update config window component data with the new device.
         #######################################################################
         # Check if connection is good.
-        if connection is not None and connection.is_alive():
+        if connection is not None and connection.is_alive() and all(True if "name" in interface and "description" in interface else False for interface in device["interfaces"]):
             # Enable config window components. Othewise textbox won't update with input.
             self.enable()
             # Get device.
@@ -398,7 +399,9 @@ class ConfigureUI:
         self.logger.info("WRITING running configuration...")
         # Write config.
         try:
-            output = connection.save_config()
+            # Check if connection has been initialized.
+            if connection is not None:
+                output = connection.save_config()
         except NotImplementedError:
             output = connection.send_command("write")
 
@@ -820,7 +823,7 @@ class ConfigureUI:
             # Open a window asking for the user to select interfaces from the dropdown menu.
             self.popup = MultipleListPopup()
             selections = self.popup.open([interface["name"] for interface in self.interfaces_list], prompt="Choose your interfaces: ")
-            # Check if selections completed successfully, if so then continue to ask for channel number.\
+            # Check if selections completed successfully, if so then continue to ask for channel number.
             if selections is not None:
                 # Open a popup window and ask user what number port channel interface they want to connection to.
                 self.popup = ListPopup()
@@ -1281,7 +1284,7 @@ class ConfigureUI:
                     else:
                         command_list.append("no switchport trunk native vlan")
                 else:
-                    # If both access and trunk checkboxes are unticked, then defualt the port.
+                    # If both access and trunk checkboxes are unticked, then default the port.
                     command_list.append(f"default interface {interface['name']}")
                     # Navigate into enterface.
                     command_list.append(f"interface {interface['name']}")
@@ -1586,15 +1589,17 @@ class ConfigureUI:
         device["vlans"] = vlans
         device["config"] = config
 
-        # Update interfaces and vlan lists and dropdowns.
-        self.interfaces_list = device["interfaces"]
-        self.interface_drop_down["values"] = [interface["name"] + " " + interface["description"] for interface in self.interfaces_list]
-        self.interface_range_drop_down["values"] = [interface["name"] + " " + interface["description"] for interface in self.interfaces_list]
-        self.vlans_list = device["vlans"]
-        self.vlan_drop_down["values"] = [vlan["vlan"] + " " + vlan["name"] for vlan in self.vlans_list]
-        # Update config textbox component.
-        self.text_box.delete("1.0", tk.END)
-        self.text_box.insert(tk.END, config)
+        # Check if name and decription keys exist for every device in the list.
+        if all(True if "name" in interface and "decription" in interface else False for interface in device["interfaces"]):
+            # Update interfaces and vlan lists and dropdowns.
+            self.interfaces_list = device["interfaces"]
+            self.interface_drop_down["values"] = [interface["name"] + " " + interface["description"] for interface in self.interfaces_list]
+            self.interface_range_drop_down["values"] = [interface["name"] + " " + interface["description"] for interface in self.interfaces_list]
+            self.vlans_list = device["vlans"]
+            self.vlan_drop_down["values"] = [vlan["vlan"] + " " + vlan["name"] for vlan in self.vlans_list]
+            # Update config textbox component.
+            self.text_box.delete("1.0", tk.END)
+            self.text_box.insert(tk.END, config)
         
     def update_window(self) -> None:
         """
@@ -1643,7 +1648,7 @@ class ConfigureUI:
                         addresses.append(temp)
                     
                     # Now that we have a good list of IPs, get device info about each one.
-                    Thread(target=ssh_autodetect_switchlist_info, args=(self.usernames, self.passwords, self.switch_secret, addresses, self.devices)).start()
+                    Thread(target=ssh_autodetect_switchlist_info, args=(self.usernames, self.passwords, self.enable_secrets, addresses, self.devices)).start()
 
                     # Set toggle.
                     self.retrieving_devices = True
