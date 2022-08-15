@@ -310,7 +310,6 @@ def get_config_info(connection) -> netmiko.ssh_dispatcher:
         if connection is not None and connection.is_alive():
             # Check permission level.
             priv_output = connection.send_command("show priv").split(" ")[-1].strip()
-            print(connection.find_prompt(), priv_output)
             if int(priv_output) >= 15:
                 # Find prompt for connection.
                 prompt = connection.find_prompt()
