@@ -42,6 +42,7 @@ class MainUI():
         self.already_auto_discovering = False
         self.export_permission_error = False
         self.enable_telnet_check = None
+        self.force_telnet_check = None
 
         # Open log file for displaying in console window.
         self.log_file = open("logs/latest.log", "r", encoding="utf-8")
@@ -81,6 +82,7 @@ class MainUI():
         self.window.attributes("-topmost", False)
         # Create checkbox variables.
         self.enable_telnet_check = tk.BooleanVar(self.window)
+        self.force_telnet_check = tk.BooleanVar(self.window)
 
         # Setup window grid layout.
         self.window.rowconfigure(self.grid_size, weight=1, minsize=50)
@@ -129,6 +131,8 @@ class MainUI():
         load_config_title.grid(row=0, columnspan=len(self.grid_size), sticky=tk.N)
         auto_discover_button = tk.Button(master=load_switch_config_frame, text="Auto Discover", foreground="black", background="white", command=self.auto_discover_switches)
         auto_discover_button.grid(row=0, rowspan=1, column=0, columnspan=1, sticky=tk.SW)
+        discover_warning = tk.Label(master=load_switch_config_frame, text="(When autodiscovering only enter one IP from each subnet!)")
+        discover_warning.grid(row=0, rowspan=1, column=1, columnspan=1, sticky=tk.SW)
         self.text_box = tk.Text(master=load_switch_config_frame, width=10, height=5)
         self.text_box.grid(row=1, rowspan=9, columnspan=9, sticky=tk.NSEW)
         button = tk.Button(master=load_switch_config_frame, text="Pull Configs", foreground="black", background="white", command=self.read_configs_button_callback)
@@ -140,7 +144,9 @@ class MainUI():
         creds_title = tk.Label(master=self.creds_frame, text="Login Credentials", font=(self.font, 18))
         creds_title.grid(row=0, column=0, columnspan=6, sticky=tk.W)
         enable_telnet_checkbox = tk.Checkbutton(master=self.creds_frame, text="Enable Telnet", variable=self.enable_telnet_check, onvalue=True, offvalue=False)
-        enable_telnet_checkbox.grid(row=1, rowspan=1, column=9, columnspan=1, sticky=tk.E)
+        enable_telnet_checkbox.grid(row=1, rowspan=1, column=8, columnspan=1, sticky=tk.E)
+        force_telnet_checkbox = tk.Checkbutton(master=self.creds_frame, text="Force Telnet", variable=self.force_telnet_check, onvalue=True, offvalue=False)
+        force_telnet_checkbox.grid(row=1, rowspan=1, column=9, columnspan=1, sticky=tk.E)
         creds_title = tk.Label(master=self.creds_frame, text="(Enable secret is not required if enable mode is default for vty connections.)")
         creds_title.grid(row=0, column=6, columnspan=4, sticky=tk.E)
         add_cred_button = tk.Button(master=self.creds_frame, text="Add Creds", foreground="black", background="white", command=self.add_creds_callback)
@@ -299,7 +305,7 @@ class MainUI():
                 auth_success = False
                 # Get secret
                 # Attempt to auth.
-                first_switch = ssh_autodetect_info(usernames, passwords, enable_secrets, test_ip)
+                first_switch = ssh_autodetect_info(usernames, passwords, enable_secrets, self.enable_telnet_check.get(), self.force_telnet_check.get(), test_ip)
                 # Check if auth was successful.
                 if first_switch["host"] != "Unable_to_Authenticate":
                     # Set toggle.
@@ -308,7 +314,7 @@ class MainUI():
                 # Only continue if the first switch login was successful.
                 if auth_success:
                     # Start backprocess for auto discover.
-                    Thread(target=self.auto_discover_back_process, args=(text, usernames, passwords, enable_secrets, self.enable_telnet_check.get(), export_data_prompt, export_data_selections)).start()
+                    Thread(target=self.auto_discover_back_process, args=(text, usernames, passwords, enable_secrets, self.enable_telnet_check.get(), self.force_telnet_check.get(), export_data_prompt, export_data_selections)).start()
                     # Set safety toggle.
                     self.already_auto_discovering = True
                     # Print log.
@@ -327,12 +333,12 @@ class MainUI():
             self.logger.warning("You must enter username and password credentials. Otherwise, I can't log into the switch!")
             messagebox.showwarning(title="Warning", message="You must enter username and password credentials.")
 
-    def auto_discover_back_process(self, text, usernames, passwords, enable_secrets, enable_telnet, export_data=True, export_data_selections=[]) -> None:
+    def auto_discover_back_process(self, text, usernames, passwords, enable_secrets, enable_telnet, force_telnet, export_data=True, export_data_selections=[]) -> None:
         """
         Helper function for auto discover.
         """
         # Discover ips.
-        discover_ip_list, export_info = cdp_auto_discover(text, usernames, passwords, enable_secrets, enable_telnet, export_data)
+        discover_ip_list, export_info = cdp_auto_discover(text, usernames, passwords, enable_secrets, enable_telnet, force_telnet, export_data)
 
         # Store values in discover list array.
         for addr in discover_ip_list:
@@ -392,7 +398,7 @@ class MainUI():
                 filtered_export_info = []
                 for device in export_info:
                     # Check if the matching data list isn't empty.
-                    if len(export_data_selections) > 0:
+                    if export_data_selections is not None and len(export_data_selections) > 0:
                         # Create list of booleans for device type.
                         type_boolean_list = [device["is_router"], device["is_switch"], device["is_wireless_ap"], device["is_phone"], device["is_camera"]]
                         # Get a list of matching values for corresponding positions in the list.
@@ -401,6 +407,9 @@ class MainUI():
                             # Check if both are true.
                             if bool_val and type_boolean_list[i]:
                                 matching = True
+                    else:
+                        # Just export everything is the user didn't choose.
+                        matching = True
 
                     # If the device is valid per user input, then append to new list and do other stuff.
                     if matching:
@@ -478,7 +487,7 @@ class MainUI():
                 # Turn on settings panel.
                 graph_net.show_buttons()
                 # Export normal graph.
-                graph_net.show("exports/graph.html")
+                graph_net.show("exports/universe_graph.html")
                 # Set new graph options.
                 graph_net.set_options('''
                 const options = {
@@ -571,7 +580,7 @@ class MainUI():
                         enable_secrets.pop(i)
                 # Get secret from user if they entered it.
                 # Open configure window and give it the switch ip list, username, and password.
-                self.config_window.run(self.ip_list, usernames, passwords, enable_secrets)
+                self.config_window.run(self.ip_list, usernames, passwords, enable_secrets, self.enable_telnet_check.get(), self.force_telnet_check.get())
         else:
             # Print log info.
             self.logger.warning("You must enter password credentials. Otherwise, I can't log into the switch!")

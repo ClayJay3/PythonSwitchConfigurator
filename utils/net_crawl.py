@@ -17,7 +17,7 @@ ip_discovery_list = []
 export_info_list = []
 license_info = []
 
-def cdp_auto_discover(ip_list, usernames, passwords, enable_secrets, enable_telnet=False, export_info=False) -> list:
+def cdp_auto_discover(ip_list, usernames, passwords, enable_secrets, enable_telnet=False, force_telnet=False, export_info=False, recursion_level=0) -> list:
     """
     This function takes in a list of strings containing the ip addresses to start auto discovery with.
     Then new processes are spawned that run a show cdp neighbors command and parse the output to find more connected switches.
@@ -45,23 +45,23 @@ def cdp_auto_discover(ip_list, usernames, passwords, enable_secrets, enable_teln
         # Print log.
         logger.info("Discovery has reached the end of the network, closing recursive branches now.")
 
-        # Check if we are at the end/bottom of recursion before appending license info. Check if license_info has already been emptied.
-        if len(license_info) > 0:
-            # Loop through export info and license info.
-            for export_data in export_info_list:
-                # Add empty license info in case nothing matches.
-                export_data["license_state"] = "NULL"
-                export_data["license_expire_period"] = "NULL"
-                export_data["license_info"] = "NULL"
-                for license_data in license_info:
-                    # Check if the license hostname appears in export hostname. If so, then append license data to dictionary.
-                    if license_data["ip_addr"] == export_data["ip_addr"]:
-                        export_data["license_state"] = license_data["license_state"]
-                        export_data["license_expire_period"] = license_data["expire_period"]
-                        export_data["license_info"] = license_data["raw_output"]
+        # # Check if we are at the end/bottom of recursion before appending license info. Check if license_info has already been emptied.
+        # if len(license_info) > 0:
+        # Loop through export info and license info.
+        for export_data in export_info_list:
+            # Add empty license info in case nothing matches.
+            export_data["license_state"] = "NULL"
+            export_data["license_expire_period"] = "NULL"
+            export_data["license_info"] = "NULL"
+            for license_data in license_info:
+                # Check if the license hostname appears in export hostname. If so, then append license data to dictionary.
+                if license_data["ip_addr"] == export_data["ip_addr"]:
+                    export_data["license_state"] = license_data["license_state"]
+                    export_data["license_expire_period"] = license_data["expire_period"]
+                    export_data["license_info"] = license_data["raw_output"]
 
-            # Clear license_info arrray.
-            license_info.clear()
+        # Clear license_info arrray.
+        license_info.clear()
 
         # Return if we hit the end of the switch line.
         return ip_discovery_list, export_info_list
@@ -69,7 +69,7 @@ def cdp_auto_discover(ip_list, usernames, passwords, enable_secrets, enable_teln
         # Create a new thread pool and get cdp info.
         pool = ThreadPool(MAX_DISCOVERY_THREADS)
         # Loop through each ip and create a new thread to get info.
-        result_ips = pool.map_async(partial(get_cdp_neighbors_info, usernames, passwords, enable_secrets, enable_telnet, export_info), ip_list)
+        result_ips = pool.map_async(partial(get_cdp_neighbors_info, usernames, passwords, enable_secrets, enable_telnet, force_telnet, export_info), ip_list)
         # Wait for pool threads to finish.
         pool.close()
         pool.join()
@@ -87,17 +87,23 @@ def cdp_auto_discover(ip_list, usernames, passwords, enable_secrets, enable_teln
                 if export_info and len(info) > 0 and info["hostname"] != "NULL" and not info in export_info_list:
                     # Use list comprehension to check of the hostname has already been put into the dictionary list.
                     hostnames = [key_val["hostname"] for key_val in export_info_list]
+                    # If not already there insert it.
                     if info["hostname"] not in hostnames:
+                        # Add recursion level to info.
+                        info["recursion_level"] = recursion_level
                         # Finally, append to list.
                         export_info_list.append(info)
 
         # Print log.
         logger.info(f"Discovered IPs {new_ips} from the following devices: {ip_list}")
 
-        # Recursion baby.
-        return cdp_auto_discover(new_ips, usernames, passwords, enable_secrets, enable_telnet, export_info)
+        # Increment recursion level.
+        recursion_level += 1
 
-def get_cdp_neighbors_info(usernames, passwords, enable_secrets, enable_telnet, export_info, ip_addr) -> Tuple(list):
+        # Recursion baby.
+        return cdp_auto_discover(new_ips, usernames, passwords, enable_secrets, enable_telnet, force_telnet, export_info, recursion_level)
+
+def get_cdp_neighbors_info(usernames, passwords, enable_secrets, enable_telnet, force_telnet, export_info, ip_addr) -> Tuple(list):
     """
     This function opens a new ssh connection with the given ip and gets cdp neighbors info.
 
@@ -136,7 +142,7 @@ def get_cdp_neighbors_info(usernames, passwords, enable_secrets, enable_telnet, 
                 ssh_connection = ConnectHandler(**remote_device)
             except NetmikoTimeoutException:
                 # Check if telnet connections have been enabled.
-                if enable_telnet:
+                if enable_telnet or force_telnet:
                     try:
                         # Change device type to telnet.
                         remote_device["device_type"] = "cisco_ios_telnet"
@@ -145,7 +151,18 @@ def get_cdp_neighbors_info(usernames, passwords, enable_secrets, enable_telnet, 
                     except (NetmikoAuthenticationException, ConnectionRefusedError, TimeoutError, Exception):
                         # Do nothing. Errors are expected, handling is slow.
                         pass
-            except (NetmikoAuthenticationException, ConnectionRefusedError, TimeoutError, Exception):
+            except (NetmikoAuthenticationException, ConnectionRefusedError, TimeoutError):
+                # Check if force telnet connections have been enabled.
+                if force_telnet:
+                    try:
+                        # Change device type to telnet.
+                        remote_device["device_type"] = "cisco_ios_telnet"
+                        # Open new ssh connection with switch.
+                        ssh_connection = ConnectHandler(**remote_device)
+                    except (NetmikoAuthenticationException, ConnectionRefusedError, TimeoutError, Exception):
+                        # Do nothing. Errors are expected, handling is slow.
+                        pass
+            except (ConnectionRefusedError, Exception):
                 # Do nothing. Errors are expected, handling is slow.
                 pass
 
