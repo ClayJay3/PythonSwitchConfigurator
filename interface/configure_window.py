@@ -7,6 +7,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import messagebox
 from threading import Thread
+from tracemalloc import start
 from typing import Tuple
 import netmiko
 
@@ -533,11 +534,14 @@ class ConfigureUI:
             # Check if selection is valid.
             if selection is not None:
                 # Run command.
-                output = connection.send_command(f"test cable tdr interface {selection}")
-                # Sleep to give time for the command to run.
-                time.sleep(0.1)
-                # Get test results.
-                output = connection.send_command(f"show cable tdr interface {selection}")
+                connection.send_command(f"test cable tdr interface {selection}")
+                # Keep checking test results until not completed isn't detected.
+                output = "Not Completed"
+                start_time = time.time()
+                while "Not Completed" in output or (time.time() - start_time) > 15.0:
+                    # Get test results.
+                    output = connection.send_command(f"show cable tdr interface {selection}")
+                    time.sleep(2)
                 
                 # Print log.
                 self.logger.info(f"Sending button command 'test cable tdr interface {selection}' to {device['host']}")
